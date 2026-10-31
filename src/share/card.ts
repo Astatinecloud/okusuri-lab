@@ -1,6 +1,8 @@
 import qrcode from 'qrcode-generator';
 import { cost, keys, type Design, type Result } from '../model';
-import { labels, rank, comments, badge } from '../config/game';
+import { labels } from '../config/game';
+import { rank, comments, badge } from '../game/result';
+import { wrapJapanese } from '../game/presentation';
 export function makeQR(url: string) {
     const qr = qrcode(0, 'M');
     qr.addData(url);
@@ -30,29 +32,38 @@ export async function resultImage(d: Design, r: Result, name: string, url: strin
     text('★'.repeat(rank(r.recovered).stars), 370, 44);
     text(rank(r.recovered).name, 430, 40);
     text(`使ったコイン ${cost(d)} / 9${badge(d, r) ? '　🏅 せつやく名人' : ''}`, 480, 26);
-    keys.forEach((k, i) => text(`${labels[k]}  ${'●'.repeat(d[k])}${'○'.repeat(5 - d[k])}`, 540 + i * 55, 30));
+    keys.forEach((key, i) => {
+        const y = 540 + i * 55;
+        ctx.textAlign = 'left';
+        ctx.font = '700 28px "M PLUS Rounded 1c", system-ui';
+        ctx.fillStyle = '#315c55';
+        ctx.fillText(labels[key], 100, y);
+        for (let level = 1; level <= 5; level++) {
+            ctx.fillStyle = level <= d[key] ? '#77b299' : '#e0e8df';
+            ctx.fillRect(650 + (level - 1) * 64, y - 24, 52, 24);
+        }
+    });
+    ctx.textAlign = 'center';
+    ctx.fillStyle = '#315c55';
     // Fit every comment above the QR, including the longest low-score explanation.
-    let lines: string[] = [], fontSize = 28;
+    let lines: string[] = [];
+    let fontSize = 28;
     for (; fontSize >= 18; fontSize--) {
         ctx.font = `500 ${fontSize}px "M PLUS Rounded 1c", system-ui`;
         lines = [];
         for (const paragraph of comments(d, r)) {
-            let row = '';
-            for (const char of paragraph) {
-                if (ctx.measureText(row + char).width > 920) {
-                    lines.push(row);
-                    row = '';
-                }
-                row += char;
-            }
-            if (row)
-                lines.push(row);
+            lines.push(...wrapJapanese(paragraph, 920, value => ctx.measureText(value).width));
         }
         if (lines.length * (fontSize + 10) <= 230)
             break;
     }
     lines.forEach((line, i) => ctx.fillText(line, 540, 775 + i * (fontSize + 10)));
-    const qr = makeQR(url), n = qr.getModuleCount(), size = 240, cell = size / (n + 8), left = (1080 - size) / 2, top = 1030;
+    const qr = makeQR(url);
+    const n = qr.getModuleCount();
+    const size = 240;
+    const cell = size / (n + 8);
+    const left = (1080 - size) / 2;
+    const top = 1030;
     ctx.fillStyle = 'white';
     ctx.fillRect(left, top, size, size);
     ctx.fillStyle = '#203e38';
@@ -61,6 +72,7 @@ export async function resultImage(d: Design, r: Result, name: string, url: strin
             if (qr.isDark(row, col))
                 ctx.fillRect(left + (col + 4) * cell, top + (row + 4) * cell, Math.ceil(cell), Math.ceil(cell));
         }
-    text('教育用の簡単なモデルです', 1320, 24);
+    text('このカードのQRで けっかを見られるよ', 1298, 24);
+    text('教育用の簡単なモデルです', 1330, 22);
     return canvas.toDataURL('image/png');
 }
