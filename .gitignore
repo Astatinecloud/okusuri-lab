@@ -1,4 +1,6 @@
-node_modules
-dist
-__pycache__
+node_modules/
+dist/
+*.tsbuildinfo
+.npm-cache/
+__pycache__/
 *.log
