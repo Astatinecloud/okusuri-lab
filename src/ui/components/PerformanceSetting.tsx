@@ -28,27 +28,27 @@ type Props = {
 export function PerformanceSetting({ attribute, design, change }: Props) {
     const level = design[attribute];
     return (
-        <section className="card setting" aria-labelledby={'parameter-' + attribute}>
+        <section className={"card setting setting-" + attribute} aria-labelledby={'parameter-' + attribute}>
             <div className="parameter-header">
                 <h2 id={'parameter-' + attribute}>
                     {labels[attribute]} <Info term={parameterTerms[attribute]} />
                 </h2>
                 {subtitles[attribute] && <p className="parameter-subtitle">{subtitles[attribute]}</p>}
-                <strong>レベル {level} / 5 · {(level - 1) * 10} pt</strong>
+                <strong>レベル {level} / 5 · {level - 1}枚</strong>
             </div>
             <p>{descriptions[attribute]}</p>
             <div className="levels">
                 {[1, 2, 3, 4, 5].map(value => {
                     const locked = !canAfford({ ...design, [attribute]: value });
                     const accessibleName = labels[attribute] + ' レベル' + value
-                        + (locked ? '（研究開発費が不足）' : '');
+                        + (locked ? '（研究コインが不足）' : '');
                     return (
                         <button
                             key={value}
                             disabled={locked}
                             aria-label={accessibleName}
                             aria-pressed={level === value}
-                            title={locked ? '研究開発費が不足しています。他の性能を下げると選べます。' : (value - 1) * 10 + ' pt'}
+                            title={locked ? '研究コインが不足しています。ほかの性能を下げると選べます。' : value - 1 + '枚'}
                             onClick={() => change(attribute, value)}
                         >
                             {value}{locked && <small aria-hidden="true"> 🔒</small>}
@@ -56,7 +56,7 @@ export function PerformanceSetting({ attribute, design, change }: Props) {
                     );
                 })}
             </div>
-            <small>選択できない段階は研究開発費が不足しています。</small>
+            <small>選択できない段階は研究コインが不足しています。</small>
             <details>
                 <summary>詳しく</summary>
                 <p>メリット：{benefits[attribute]}</p>

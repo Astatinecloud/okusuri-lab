@@ -93,7 +93,7 @@ describe('review 2 causal rules', () => {
         const narrative = causalNarrative('mech', evidence);
         expect(narrative).toContain('必要な濃度が下がり');
         expect(narrative).toContain('約2分の1');
-        expect(narrative).toContain('+10 pt');
+        expect(narrative).toContain('+1枚');
         expect(narrative).toContain('+3人');
     });
 
@@ -163,7 +163,7 @@ describe('review 2 causal rules', () => {
     it('marks over-budget upward evidence as a reference', () => {
         const design = { pot: 1, mech: 5, dur: 2, gentle: 5 };
         const html = renderToStaticMarkup(<PerformanceAnalysis design={design} analysis={analyzeDesign(design)} />);
-        expect(html).toContain('参考：予算外の設計');
+        expect(html).toContain('参考：研究コインが足りない設計');
     });
 });
 
@@ -174,7 +174,7 @@ describe('review 2 accessibility', () => {
             const html = renderToStaticMarkup(<PerformanceSetting attribute={key} design={design} change={() => {}} />);
             for (let level = 1; level <= 5; level++) {
                 const locked = level > design[key];
-                const name = labels[key] + ' レベル' + level + (locked ? '（研究開発費が不足）' : '');
+                const name = labels[key] + ' レベル' + level + (locked ? '（研究コインが不足）' : '');
                 expect(html).toContain('aria-label="' + name + '"');
             }
             expect(html).toContain('aria-pressed="true"');

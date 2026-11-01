@@ -83,9 +83,9 @@ export function causalNarrative(key: Key, evidence: Evidence): string {
     const previous = before.representative;
     const current = after.representative;
     const interruptions = after.seDrop - before.seDrop;
-    const expense = (cost(evidence.afterDesign) - cost(evidence.beforeDesign)) * 10;
+    const expense = cost(evidence.afterDesign) - cost(evidence.beforeDesign);
     const recovery = preview ? '回復患者は ' + before.recovered + '人 → ' + after.recovered + '人になります。' : '';
-    const tradeoff = '一方、研究開発費は +' + expense + ' pt、副作用で中断した患者は '
+    const tradeoff = '一方、研究コインは +' + expense + '枚、副作用で中断した患者は '
         + signed(interruptions) + (preview ? '人の変化になります。' : '人でした。');
     const increased = preview ? 'を1段階高めると、' : 'を高めたことで、';
     switch (key) {
@@ -155,8 +155,8 @@ export function nextStepHint(analysis: Analysis): string {
     const step = analysis.nextStep;
     if (!step) return '次の一手：どの性能を1段階上げても回復数は増えません。別の性能を下げる組み合わせも検討してください。';
     const reference = step.affordable
-        ? '研究開発費の範囲内です。予算の配分を変える場合は、他の性能を下げる必要も考慮してください。'
-        : '参考：予算外の設計です。実際に設計するには、他の性能を下げて研究開発費を確保する必要があります。';
+        ? '研究コインの範囲内です。予算の配分を変える場合は、他の性能を下げる必要も考慮してください。'
+        : '参考：研究コインが足りない設計です。実際に設計するには、他の性能を下げて研究コインを確保する必要があります。';
     return '次の一手：次に1段階上げると最も回復数が増えるのは〈' + labels[step.key] + '〉（+'
         + step.gain + '人：' + analysis.current.recovered + '人 → ' + step.comparison.result.recovered + '人）。' + reference;
 }
@@ -194,7 +194,7 @@ export function comparisonRows(design: Design, analysis: Analysis, comparison: C
         reduction('耐性菌の減少率', current.resStart, previous.resEnd, current.resEnd),
         time('増殖を上回る時間・感受性菌', comparison.indicators.timeAboveS, analysis.indicators.timeAboveS),
         time('増殖を上回る時間・耐性菌', comparison.indicators.timeAboveR, analysis.indicators.timeAboveR),
-        counts('研究開発費（pt）', cost(comparison.design) * 10, cost(design) * 10),
+        counts('研究コイン（枚）', cost(comparison.design), cost(design)),
     ];
 }
 

@@ -6,11 +6,19 @@ import { resultImage } from './card';
 afterEach(() => vi.unstubAllGlobals());
 
 it('draws a 1080×1350 card with rank stars, four five-step bars, and QR instructions', async () => {
+    const fills: string[] = [];
     const context = {
         fillStyle: '',
+        beginPath: vi.fn(),
+        arc: vi.fn(),
+        fill: vi.fn(),
+        stroke: vi.fn(),
+        moveTo: vi.fn(),
+        lineTo: vi.fn(),
+        quadraticCurveTo: vi.fn(),
         font: '',
         textAlign: '',
-        fillRect: vi.fn(),
+        fillRect: vi.fn((..._args: number[]) => fills.push(context.fillStyle)),
         fillText: vi.fn(),
         measureText: (text: string) => ({ width: Array.from(text).length * 28 }),
     };
@@ -33,6 +41,12 @@ it('draws a 1080×1350 card with rank stars, four five-step bars, and QR instruc
     expect(canvas.toDataURL).toHaveBeenCalledWith('image/png');
     const texts = context.fillText.mock.calls.map(call => call[0] as string);
     expect(texts).toContain('★'.repeat(rank(result.recovered).stars));
+    expect(fills[0]).toBe('#FFF8EC');
+    expect(context.arc).toHaveBeenCalledTimes(4);
+    expect(context.quadraticCurveTo).toHaveBeenCalledTimes(2);
+    expect(texts).toContain('使った研究コイン 6 / 9');
+    expect(texts).toContain('研究コインはゲーム上の単位で、実際の費用ではありません。');
+    expect(texts.join(' ')).not.toMatch(/ pt|90/);
     expect(texts).toContain('QRから同じ設計の結果を確認できます');
     expect(texts).toContain('教育用の簡略化モデルによる仮想的な結果です。');
     const commentLines = context.fillText.mock.calls.filter(call => Number(call[2]) >= 865 && Number(call[2]) < 990);

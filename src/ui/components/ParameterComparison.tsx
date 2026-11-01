@@ -32,7 +32,7 @@ export function ParameterComparison({ design, analysis, comparison, attribute, d
                 ))}
             </div>
             {loading && <p role="status">計算しています…</p>}
-            {comparison && !canAfford(comparison.design) && <p className="warning">参考：予算外の設計</p>}
+            {comparison && !canAfford(comparison.design) && <p className="warning">参考：研究コインが足りない設計</p>}
             {!comparison && !loading && <p>この方向には比較できるレベルがありません。別の性能または方向を選択してください。</p>}
             {comparison && analysis && <div className="table-scroll">
                 <table>

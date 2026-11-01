@@ -99,10 +99,10 @@ describe('simulation presentation', () => {
         expect(barrierEffect(high, 0).duration).toBeLessThan(barrierEffect(high, 11).duration);
     });
 
-    it('renders small outcome squares with distinct symbols and matching legend', () => {
+    it('renders the original people with distinct faces, bandage and matching legend', () => {
         const icons = (['well','ill','side'] as const).map(status => renderToStaticMarkup(<PatientIcon status={status}/>));
-        for (const icon of icons) { expect(icon).toContain('aria-hidden="true"'); expect(icon).not.toContain('<svg'); }
-        expect(icons[0]).toContain('＋'); expect(icons[1]).toContain('・'); expect(icons[2]).toContain('×');
+        for (const icon of icons) { expect(icon).toContain('aria-hidden="true"'); expect(icon).toContain('<svg'); }
+        expect(icons[0]).toContain('M15 22q5 6 10 0'); expect(icons[1]).toContain('M16 23h8'); expect(icons[2]).toContain('<rect');
         expect(renderToStaticMarkup(<PatientLegend/>).match(/patient-icon/g)).toHaveLength(3);
     });
 });

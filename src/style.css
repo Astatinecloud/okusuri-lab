@@ -1,8 +1,8 @@
 @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700&display=swap');
 :root {
     font-family:'Noto Sans JP',sans-serif;
-    color:#1F2933;
-    background:#FFFFFF;
+    color:#375a51;
+    background:#FFF8EC;
     font-variant-numeric:tabular-nums
 }
 * {
@@ -31,28 +31,28 @@ button,input,a {
 }
 button,.button {
     min-height:44px;
-    border:1px solid #cbd5df;
-    border-radius:10px;
+    border:1px solid #d8d9c7;
+    border-radius:18px;
     padding:10px 16px;
-    background:#F6F8FA;
-    color:#1F2933;
+    background:#edf0e7;
+    color:#375a51;
     cursor:pointer;
     text-decoration:none
 }
 button:hover {
-    background:#e8eef6
+    background:#e2e9dd
 }
 button:disabled {
     opacity:.55;
     cursor:not-allowed
 }
 button[aria-pressed=true],.primary {
-    background:#2563EB;
+    background:#39745e;
     color:white;
-    border-color:#2563EB
+    border-color:#39745e
 }
 button:focus-visible,a:focus-visible,summary:focus-visible,input:focus-visible {
-    outline:3px solid #2563EB;
+    outline:3px solid #39745e;
     outline-offset:3px
 }
 header {
@@ -62,7 +62,7 @@ header {
     max-width:1120px;
     margin:auto;
     padding:16px;
-    border-bottom:1px solid #dde3e8
+    border-bottom:1px solid #e1dfd2
 }
 header .brand {
     border:0;
@@ -71,7 +71,7 @@ header .brand {
 }
 header>span,small,.tiny {
     font-size:12px;
-    color:#526171;
+    color:#56685f;
     line-height:1.8
 }
 main {
@@ -89,10 +89,10 @@ main {
     font-size:44px
 }
 .hero h2 {
-    color:#2563EB
+    color:#39745e
 }
 .eyebrow,.heading>small {
-    color:#526171;
+    color:#56685f;
     letter-spacing:.12em
 }
 .heading {
@@ -100,9 +100,9 @@ main {
 }
 .card {
     padding:24px;
-    border:1px solid #dde3e8;
-    border-radius:12px;
-    background:#FFFFFF;
+    border:1px solid #e1dfd2;
+    border-radius:20px;
+    background:#fffdf9;
     margin-bottom:20px
 }
 .design-grid,.stats,.sim-grid {
@@ -133,20 +133,20 @@ main {
     position:sticky;
     top:0;
     z-index:5;
-    background:#F6F8FA
+    background:#edf0e7
 }
 .coins>div {
-    display:flex;
-    gap:5px
+    display: flex;
+    justify-content: center;
+    gap: 6px;
 }
 .coins>div>span {
-    height:12px;
-    flex:1;
-    background:#dce3eb;
-    border-radius:2px
+    display: inline-flex;
+    width: 28px;
+    height: 28px;
 }
 .coins .spent {
-    background:#2563EB
+    opacity: .28;
 }
 .wide {
     display:block;
@@ -155,8 +155,8 @@ main {
 }
 .tag {
     display:inline-block;
-    background:#F6F8FA;
-    border:1px solid #dde3e8;
+    background:#edf0e7;
+    border:1px solid #e1dfd2;
     padding:4px 8px;
     border-radius:6px;
     margin:4px;
@@ -178,21 +178,9 @@ summary {
     margin:20px auto
 }
 .patient-icon {
-    display:inline-flex;
-    align-items:center;
-    justify-content:center;
-    width:100%;
-    aspect-ratio:1;
-    border-radius:3px;
-    background:#697586;
-    color:white;
-    font-size:15px
-}
-.patient-icon.well {
-    background:#0F9D76
-}
-.patient-icon.side {
-    background:#C2410C
+    display: block;
+    width: 100%;
+    height: auto;
 }
 .legend {
     display:flex;
@@ -218,14 +206,14 @@ summary {
     font-size:17px
 }
 .stats .card {
-    background:#F6F8FA
+    background:#edf0e7
 }
 .stats h3 {
-    color:#0F9D76
+    color:#39745e
 }
 em {
     font-style:normal;
-    color:#0F9D76;
+    color:#39745e;
     font-size:1.5em
 }
 .chart {
@@ -234,7 +222,7 @@ em {
 }
 .chart text {
     font-size:11px;
-    fill:#526171
+    fill:#56685f
 }
 .line {
     fill:none;
@@ -246,13 +234,13 @@ em {
     display:inline-block
 }
 .green {
-    color:#0F9D76
+    color:#39745e
 }
 .blue {
-    color:#2563EB
+    color:#39745e
 }
 .gray {
-    color:#697586
+    color:#68756d
 }
 .dashed {
     border-top-style:dashed
@@ -264,9 +252,9 @@ em {
     height:300px;
     position:relative;
     overflow:hidden;
-    background:#F6F8FA;
-    border-radius:10px;
-    border:1px solid #dde3e8;
+    background:#edf0e7;
+    border-radius:18px;
+    border:1px solid #e1dfd2;
     padding:12px
 }
 .body-world>p {
@@ -282,7 +270,7 @@ em {
     left:0;
     width:100%;
     padding:8px;
-    background:#e8edf2
+    background:#e1dce5
 }
 .hideout>div {
     display:flex;
@@ -293,7 +281,7 @@ em {
 }
 progress {
     width:100%;
-    accent-color:#2563EB
+    accent-color:#39745e
 }
 .check {
     display:flex;
@@ -308,21 +296,21 @@ progress {
 }
 .analysis-card {
     padding:18px 0;
-    border-bottom:1px solid #dde3e8
+    border-bottom:1px solid #e1dfd2
 }
 .highlight {
     padding:16px;
-    border-left:4px solid #2563EB;
-    background:#F6F8FA
+    border-left:4px solid #39745e;
+    background:#edf0e7
 }
 .warning,
 .card h3.warning {
-    color:#C2410C
+    color:#a04b2a
 }
 .cost-bar {
     height:24px;
     display:flex;
-    background:#F6F8FA;
+    background:#edf0e7;
     border-radius:4px;
     overflow:hidden
 }
@@ -341,15 +329,15 @@ table {
 th,td {
     text-align:left;
     padding:12px;
-    border-bottom:1px solid #dde3e8
+    border-bottom:1px solid #e1dfd2
 }
 thead {
-    background:#F6F8FA
+    background:#edf0e7
 }
 .science-card {
     padding:18px;
-    background:#F6F8FA;
-    border-radius:10px;
+    background:#edf0e7;
+    border-radius:18px;
     margin:14px 0
 }
 .actions {
@@ -363,7 +351,7 @@ thead {
     max-width:450px;
     display:block;
     margin:auto;
-    border:1px solid #dde3e8
+    border:1px solid #e1dfd2
 }
 .share {
     text-align:center
@@ -373,35 +361,35 @@ thead {
     width:240px;
     max-width:100%;
     margin:20px auto;
-    fill:#1F2933;
+    fill:#375a51;
     shape-rendering:crispEdges
 }
 input {
     display:block;
     width:100%;
     min-height:44px;
-    border:1px solid #cbd5df;
-    border-radius:10px;
+    border:1px solid #d8d9c7;
+    border-radius:18px;
     padding:10px;
     margin:10px 0 16px
 }
 footer {
     text-align:center;
     padding:24px;
-    border-top:1px solid #dde3e8;
+    border-top:1px solid #e1dfd2;
     font-size:13px
 }
 dialog {
-    border:1px solid #dde3e8;
-    border-radius:12px;
+    border:1px solid #e1dfd2;
+    border-radius:20px;
     max-width:680px;
     width:calc(100% - 32px);
     max-height:85dvh;
     padding:0;
-    color:#1F2933
+    color:#375a51
 }
 dialog::backdrop {
-    background:#1f293366
+    background:#294d4666
 }
 .dialog-content {
     padding:28px;
@@ -423,10 +411,10 @@ dialog::backdrop {
     bottom:16px;
     left:16px;
     right:16px;
-    background:#1F2933;
+    background:#375a51;
     color:white;
     padding:12px 20px;
-    border-radius:10px;
+    border-radius:18px;
     z-index:20
 }
 .notice button {
@@ -498,8 +486,8 @@ dialog::backdrop {
     top: 0;
     margin-top: 0;
     margin-bottom: 16px;
-    background: #FFFFFF;
-    border-bottom: 2px solid #cbd5df;
+    background: #fffdf9;
+    border-bottom: 2px solid #d8d9c7;
     padding: 16px;
 }
 .coins p {
@@ -517,7 +505,7 @@ dialog::backdrop {
 .parameter-subtitle {
     display: block;
     margin: 0 0 8px;
-    color: #526171;
+    color: #56685f;
     font-size: 13px;
 }
 .parameter-header strong {
@@ -536,7 +524,7 @@ dialog::backdrop {
     min-height: 44px;
     background: transparent;
     border: 0;
-    color: #2563EB;
+    color: #39745e;
 }
 .tooltip-note {
     position: fixed;
@@ -547,14 +535,14 @@ dialog::backdrop {
     max-width: 600px;
     margin: auto;
     padding: 16px;
-    border: 1px solid #cbd5df;
-    border-radius: 10px;
-    background: #F6F8FA;
-    color: #1F2933;
+    border: 1px solid #d8d9c7;
+    border-radius: 18px;
+    background: #edf0e7;
+    color: #375a51;
     font-size: 14px;
     font-weight: 400;
     line-height: 1.8;
-    box-shadow: 0 4px 16px #1f293322;
+    box-shadow: 0 4px 16px #375a5122;
 }
 .glossary {
     display: block;
@@ -562,8 +550,8 @@ dialog::backdrop {
 }
 .glossary dl {
     padding: 0 16px 16px;
-    background: #F6F8FA;
-    border-radius: 10px;
+    background: #edf0e7;
+    border-radius: 18px;
 }
 .glossary dt {
     padding-top: 16px;
@@ -588,17 +576,328 @@ dialog::backdrop {
     line-height: 1.8;
 }
 .causal-narrative {
-    border-left: 3px solid #2563EB;
+    border-left: 3px solid #39745e;
     padding-left: 12px;
 }
 .analysis-note {
-    color: #C2410C;
+    color: #a04b2a;
 }
-
 .next-step {
     margin: 12px 0;
     padding: 12px 16px;
-    border-left: 3px solid #0F9D76;
-    background: #F6F8FA;
+    border-left: 3px solid #39745e;
+    background: #edf0e7;
     font-size: 14px;
+}
+/* Original v1 illustration and color treatment, with readable v2 text. */
+:root {
+    background: #FFF8EC;
+}
+h1,h2,h3,p {
+    margin-top: 0;
+}
+.card {
+    background: #fffdf9;
+    border-radius: 22px;
+    box-shadow: 0 6px 22px #5263440d;
+}
+button,.button {
+    border-radius: 18px;
+    font-weight: 700;
+}
+button[aria-pressed=true],.primary {
+    background: #39745e;
+    color: white;
+    border-color: #39745e;
+    box-shadow: 0 3px 0 #315c55;
+}
+button[aria-pressed=true]:hover,.primary:hover {
+    background: #315c55;
+}
+.hero {
+    margin: 20px auto;
+}
+.hero h1 {
+    line-height: 1.25;
+    margin-bottom: 18px;
+}
+.hero h1 span {
+    display: block;
+    color: #39745e;
+}
+.hero .links {
+    justify-content: center;
+}
+.eyebrow {
+    display: inline-block;
+    padding: 8px 20px;
+    border-radius: 30px;
+    background: #e6eee0;
+}
+.hero-art {
+    height: 225px;
+    position: relative;
+    max-width: 370px;
+    margin: 12px auto 0;
+}
+.flask {
+    height: 210px;
+    animation: float 4s ease-in-out infinite;
+}
+.hero-germ,.hero-res {
+    position: absolute;
+    width: 55px;
+    top: 105px;
+    left: 13px;
+    transform: rotate(-15deg);
+    animation: float 3s ease-in-out infinite;
+}
+.hero-res {
+    left: auto;
+    right: 10px;
+    top: 40px;
+    animation-delay: -1s;
+}
+.hero-art .germ {
+    width: 100%;
+}
+.spark {
+    position: absolute;
+    left: 40px;
+    top: 25px;
+    font-size: 40px;
+    color: #deb960;
+}
+.capsule {
+    display: inline-block;
+    width: 33px;
+    height: 15px;
+    border: 2px solid #e0aa90;
+    background: linear-gradient(90deg,#f1bda7 50%,#fff7ed 50%);
+    border-radius: 20px;
+    transform: rotate(-35deg);
+}
+.hero-capsule {
+    position: absolute;
+    right: 25px;
+    bottom: 35px;
+    width: 56px;
+    height: 25px;
+    animation: float 3.6s infinite;
+}
+.coins {
+    background: #ffefbe;
+    border-color: #e4d399;
+    text-align: center;
+}
+.coin-icon {
+    width: 28px;
+    height: 28px;
+}
+.setting-pot {
+    border-top: 5px solid #c6d999;
+}
+.setting-mech {
+    border-top: 5px solid #cdb7df;
+}
+.setting-dur {
+    border-top: 5px solid #efc4a6;
+}
+.setting-gentle {
+    border-top: 5px solid #aad8c6;
+}
+.levels button {
+    border-radius: 50%;
+}
+.setting-mech .levels button[aria-pressed=true] {
+    background: #cdb7df;
+    color: #294d46;
+    border-color: #ad91c4;
+    box-shadow: 0 3px 0 #ad91c4;
+}
+.setting-dur .levels button[aria-pressed=true] {
+    background: #efc4a6;
+    color: #375a51;
+    border-color: #dca77f;
+    box-shadow: 0 3px 0 #dca77f;
+}
+.patient-legend .patient-icon {
+    width: 20px;
+    height: 24px;
+    flex: none;
+}
+.people {
+    max-width: 480px;
+    gap: 5px;
+}
+.sleep {
+    opacity: .6;
+}
+.body-world {
+    height: 320px;
+    background: radial-gradient(ellipse at 50% 40%,#f9e9e3,#f4d9cf);
+    border-radius: 25px;
+}
+.body-label {
+    position: absolute;
+    top: 12px;
+    left: 15px;
+    font-weight: 700;
+    font-size: 13px;
+}
+.microbe {
+    width: 34px;
+    animation: drift 3s ease-in-out infinite;
+}
+.microbe .germ {
+    width: 100%;
+    display: block;
+}
+.hideout {
+    background: #e1dce5;
+    padding: 8px 15px;
+    border-radius: 25px 25px 0 0;
+}
+.hideout small {
+    color: #375a51;
+}
+.hideout .germ {
+    width: 23px;
+}
+.particle {
+    position: absolute;
+    animation: drug 2s infinite;
+}
+.effect {
+    position: absolute;
+    right: 12px;
+    top: 58px;
+    max-width: calc(100% - 24px);
+    z-index: 2;
+    padding: 8px 12px;
+    border-radius: 16px;
+    background: #fffaf1ed;
+    font-size: 12px;
+    font-weight: 700;
+    border: 2px solid #b596ce;
+    color: #665078;
+}
+.barrier-bounce {
+    animation: barrier-bounce 1.6s infinite;
+}
+.barrier-pass {
+    animation: barrier-pass 1.6s infinite;
+    border-color: #72af97;
+    color: #39745e;
+}
+.science-card {
+    background: #ecf0e4;
+    border-radius: 20px;
+}
+.stats .card {
+    background: #fffaf1;
+}
+.glossary dt {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+.tooltip-note,dialog {
+    background: #fffaf1;
+}
+.warning,.card h3.warning,.analysis-note {
+    color: #a04b2a;
+}
+.warning {
+    border-left-color: #c9653b;
+}
+.result-image {
+    border-radius: 20px;
+    box-shadow: 0 8px 30px #47634720;
+}
+@keyframes float {
+    50% {
+        translate: 0 -10px;
+        rotate: 3deg;
+    }
+}
+@keyframes drift {
+    50% {
+        translate: 9px -7px;
+        rotate: 12deg;
+    }
+}
+@keyframes drug {
+    0% {
+        translate: 0 -10px;
+        opacity: 0;
+    }
+    40% {
+        opacity: 1;
+    }
+    100% {
+        translate: 30px 40px;
+        opacity: 0;
+    }
+}
+@keyframes barrier-bounce {
+    0%,100% {
+        transform: translateX(0);
+    }
+    30% {
+        transform: translateX(-12px) rotate(-5deg);
+    }
+    45% {
+        transform: translateX(5px);
+        box-shadow: 0 0 0 6px #cdb7df66;
+    }
+    70% {
+        transform: translateX(0);
+    }
+}
+@keyframes barrier-pass {
+    0%,100% {
+        transform: translateX(-5px);
+        box-shadow: 0 0 0 0 #a9dbb800;
+    }
+    50% {
+        transform: translateX(8px);
+        box-shadow: 0 0 12px 8px #a9dbb899;
+        background: #f3ffe9;
+    }
+}
+@media(max-width:700px) {
+    .hero-art {
+        height: 200px;
+    }
+    .flask {
+        height: 190px;
+    }
+    .body-world {
+        height: 300px;
+    }
+    .people {
+        gap: 4px;
+    }
+    .coins>div {
+        gap: 4px;
+    }
+    .coins>div>span,.coin-icon {
+        width: 24px;
+        height: 24px;
+    }
+}
+@media(prefers-reduced-motion:reduce) {
+    *,*::before,*::after {
+        animation: none!important;
+        transition: none!important;
+        scroll-behavior: auto!important;
+    }
+}
+.chart-legend .germ {
+    width: 24px;
+    flex: none;
+}
+.primary {
+    border-color: #579a80;
 }

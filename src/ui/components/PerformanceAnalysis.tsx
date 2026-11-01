@@ -16,7 +16,7 @@ function ParameterAnalysis({ design, attribute, analysis }: { design: Design; at
             <h3>{labels[attribute]}：レベル{design[attribute]} <Info term={parameterTerms[attribute]} /></h3>
             <p className="causal-narrative">{causalNarrative(attribute, evidence)}</p>
             {evidence.preview && <p className="tiny">レベル1 → 2 に上げた場合の参考比較です。</p>}
-            {evidence.preview && !canAfford(afterDesign) && <p className="warning">参考：予算外の設計</p>}
+            {evidence.preview && !canAfford(afterDesign) && <p className="warning">参考：研究コインが足りない設計</p>}
             <p>{internalTransition(attribute, beforeDesign[attribute], afterDesign[attribute])}</p>
             <p>
                 増殖を上回る時間：感受性菌 {formatPercent(low.timeAboveS)} → {formatPercent(high.timeAboveS)}、
@@ -27,7 +27,7 @@ function ParameterAnalysis({ design, attribute, analysis }: { design: Design; at
                 感受性菌 {formatNumber(previous.normEnd)} → {formatNumber(current.normEnd)}（{formatChange(previous.normEnd, current.normEnd)}）、
                 耐性菌 {formatNumber(previous.resEnd)} → {formatNumber(current.resEnd)}（{formatChange(previous.resEnd, current.resEnd)}）。
                 回復患者 {before.recovered}人 → {after.recovered}人。
-                研究開発費 +{(cost(afterDesign) - cost(beforeDesign)) * 10} pt。
+                研究コイン +{cost(afterDesign) - cost(beforeDesign)}枚。
             </p>
             {evidenceNotes(evidence, attribute).map(note => <p key={note} className="analysis-note">{note}</p>)}
         </article>
@@ -43,14 +43,14 @@ export function PerformanceAnalysis({ design, analysis }: { design: Design; anal
                 <p className="next-step">{nextStepHint(analysis)}</p>
                 <p className="tiny">{analysisCaveat}</p>
                 {keys.map(key => <ParameterAnalysis key={key} design={design} attribute={key} analysis={analysis} />)}
-                <h3>研究開発費の内訳</h3>
+                <h3>研究コインの内訳</h3>
                 <div className="cost-bar" aria-hidden="true">
                     {keys.map((key, index) => <span key={key} style={{
-                        width: ((design[key] - 1) * 10 / 90 * 100) + '%',
-                        background: ['#2563EB', '#0F9D76', '#697586', '#C2410C'][index],
+                        width: ((design[key] - 1) / 9 * 100) + '%',
+                        background: ['#86ad39', '#9870bc', '#dca77f', '#77b299'][index],
                     }} />)}
                 </div>
-                {keys.map(key => <p className="tiny" key={key}>{labels[key]}：{(design[key] - 1) * 10} pt</p>)}
+                {keys.map(key => <p className="tiny" key={key}>{labels[key]}：{design[key] - 1}枚</p>)}
             </>}
         </section>
     );

@@ -39,14 +39,14 @@ function ResultSummary({ result, design }: { result: ModelResult; design: Design
                 <BacteriaCard resistant={false} start={representative.normStart} end={representative.normEnd} />
                 <BacteriaCard resistant start={representative.resStart} end={representative.resEnd} />
             </div>
-            <p>研究開発費 {cost(design) * 10} / 90 pt</p>
+            <p>使った研究コイン {cost(design)} / 9</p>
             <p>{'★'.repeat(researcher.stars)} {researcher.name} {badge(design, result) && ' · コスト効率賞'}</p>
             <details>
                 <summary>ランクの基準</summary>
                 {ranks.map((value, index) => <p key={value.min}>
                     {value.min}〜{index === 0 ? 100 : ranks[index - 1].min - 1}人：{'★'.repeat(value.stars)} {value.name}
                 </p>)}
-                <p>80人以上かつ研究開発費に余りがあるとコスト効率賞。</p>
+                <p>80人以上かつ研究コインに余りがあるとコスト効率賞。</p>
             </details>
             <p className="tiny">代表患者＝免疫が平均的で、耐性菌が初期に10万個（感受性菌の1000分の1）含まれる患者 <Info term="免疫" /></p>
         </section>

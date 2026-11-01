@@ -109,7 +109,7 @@ describe('review 3 strongest parameter and next step', () => {
         expect(analysis.nextStep).not.toBeNull();
         expect(canAfford(analysis.nextStep!.comparison.design)).toBe(false);
         expect(analysis.nextStep!.affordable).toBe(false);
-        expect(nextStepHint(analysis)).toContain('参考：予算外');
+        expect(nextStepHint(analysis)).toContain('参考：研究コインが足りない設計');
         expect(nextStepHint(analysis)).toContain('他の性能を下げて');
     });
 

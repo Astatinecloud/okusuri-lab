@@ -1,19 +1,29 @@
-import { type Design, type Point } from '../../model';
-import { chartTicks, chartY, formatNumber } from '../../game/presentation';
+import { conc, type Design, type Point } from '../../model';
+import { chartTicks, chartY, formatNumber, barrierEffect } from '../../game/presentation';
 
 export function Germ({ res = false, sleep = false }: { res?: boolean; sleep?: boolean }) {
-    const color = sleep ? '#697586' : res ? '#2563EB' : '#0F9D76';
     return (
-        <svg viewBox="0 0 50 50" aria-hidden="true" className="germ">
-            <circle cx="25" cy="25" r={res && !sleep ? 17 : 22} fill={sleep ? 'none' : color}
-                stroke={color} strokeDasharray={sleep ? '4 4' : undefined} />
-            {res && !sleep && <circle cx="25" cy="25" r="22" fill="none" stroke={color} strokeWidth="2" />}
+        <svg viewBox="0 0 50 50" aria-hidden="true" className={`germ ${sleep ? 'sleep' : ''}`}>
+            <circle cx="25" cy="25" r="22" fill={res ? '#e6d6f8' : '#e3efbb'} stroke={res ? '#ad8aca' : '#b7d075'} strokeWidth={res ? 2 : 0} />
+            <circle cx="25" cy="25" r="16" fill={res ? '#b291cc' : '#acd266'} />
+            {sleep ? <text x="14" y="29" fontSize="12">zzz</text> : (
+                <path d="M18 22v3m14-3v3M20 31q5 5 10 0" fill="none" stroke="#40534c" strokeWidth="2" strokeLinecap="round" />
+            )}
         </svg>
     );
 }
 
 export function Flask() {
-    return <Germ />;
+    return (
+        <svg className="flask" viewBox="0 0 200 200" aria-hidden="true">
+            <ellipse cx="100" cy="177" rx="65" ry="9" fill="#dce7da" />
+            <path d="M77 20h46v12h-9v55l49 66q12 18-10 18H47q-22 0-10-18l49-66V32h-9z" fill="#e6f6f0" stroke="#4a7569" strokeWidth="5" />
+            <path d="M59 124h82l21 31q5 10-10 10H48q-15 0-10-10z" fill="#a7d8ba" />
+            <circle cx="88" cy="142" r="8" fill="#e9f6b8" />
+            <circle cx="115" cy="116" r="6" fill="#b5d7bd" />
+            <path d="M82 66h15" stroke="white" strokeWidth="7" strokeLinecap="round" />
+        </svg>
+    );
 }
 
 export function chartSeries(trace: Point[]) {
@@ -21,7 +31,7 @@ export function chartSeries(trace: Point[]) {
 }
 
 type Series = 's' | 'r' | 'q';
-const colors = { s: '#0F9D76', r: '#2563EB', q: '#697586' };
+const colors = { s: '#86ad39', r: '#9870bc', q: '#68756d' };
 const chartX = (hour: number) => 55 + hour / 72 * 430;
 
 function LineSample({ series, comparison = false }: { series: Series; comparison?: boolean }) {
@@ -71,7 +81,7 @@ export function Chart({ trace, hour = 72, comparison, showQ = false }: {
                 <text x="8" y="16">細菌数（個・対数）</text>
                 {chartTicks.map(({ value, label }) => (
                     <g key={value}>
-                        <path d={'M55 ' + chartY(value) + 'H485'} stroke="#dde3e8" />
+                        <path d={'M55 ' + chartY(value) + 'H485'} stroke="#e4e6de" />
                         <text x="48" y={chartY(value) + 4} textAnchor="end">{label}</text>
                     </g>
                 ))}
@@ -81,39 +91,54 @@ export function Chart({ trace, hour = 72, comparison, showQ = false }: {
                 <ChartLines trace={trace} hour={hour} showQ={showQ} />
             </svg>
             <div className="legend chart-legend">
-                <span><LineSample series="s" />現在・薬剤感受性菌（実線）</span>
-                <span><LineSample series="r" />現在・薬剤耐性菌（実線＋丸）</span>
+                <span><LineSample series="s" /><Germ />現在・薬剤感受性菌（実線）</span>
+                <span><LineSample series="r" /><Germ res />現在・薬剤耐性菌（実線＋丸）</span>
                 {comparison && <>
-                    <span><LineSample series="s" comparison />比較・感受性菌（破線）</span>
-                    <span><LineSample series="r" comparison />比較・耐性菌（点線＋丸）</span>
+                    <span><LineSample series="s" comparison /><Germ />比較・感受性菌（破線）</span>
+                    <span><LineSample series="r" comparison /><Germ res />比較・耐性菌（点線＋丸）</span>
                 </>}
-                {showQ && <span><LineSample series="q" />一時的耐性状態（Rq）</span>}
-                {showQ && comparison && <span><LineSample series="q" comparison />比較・一時的耐性状態（Rq）</span>}
+                {showQ && <span><LineSample series="q" /><Germ sleep />一時的耐性状態（Rq）</span>}
+                {showQ && comparison && <span><LineSample series="q" comparison /><Germ sleep />比較・一時的耐性状態（Rq）</span>}
             </div>
         </>
     );
 }
 
-function characterCount(population: number): number {
+function characterCount(population: number) {
     return Math.max(0, Math.ceil(Math.log10(Math.max(1, population)) * 2));
 }
 
-export function Body({ point }: { point: Point; design: Design }) {
+export function Body({ point, design }: { point: Point; design: Design }) {
+    const effect = barrierEffect(design, point.t);
     return (
         <div className="body-world">
-            <p>代表患者の感染部位</p>
-            {[false, true].map(resistant => Array.from({ length: characterCount(resistant ? point.R : point.S) }, (_, index) => (
-                <span className="microbe" key={String(resistant) + index} style={{
-                    left: (5 + (index * 19 + (resistant ? 11 : 0)) % 85) + '%',
-                    top: (25 + (index * 29 + (resistant ? 17 : 0)) % 45) + '%',
-                }}>
-                    <Germ res={resistant} />
-                </span>
+            <span className="body-label">代表患者の感染部位</span>
+            {[false, true].map(resistant => Array.from({ length: characterCount(resistant ? point.R : point.S) }, (_, i) => (
+                <span key={`${resistant}${i}`} className="microbe" style={{
+                    left: `${5 + (i * 19 + (resistant ? 11 : 0)) % 85}%`,
+                    top: `${22 + (i * 29 + (resistant ? 17 : 0)) % 45}%`,
+                    animationDelay: `-${i * .31}s`,
+                }}><Germ res={resistant} /></span>
             )))}
             <div className="hideout">
-                <small>一時的耐性状態</small>
-                <div>{Array.from({ length: characterCount(point.Rq + point.Sq) }, (_, index) => <Germ sleep key={index} />)}</div>
+                <small>一時的耐性状態（薬が届きにくい部位・休眠）</small>
+                <div>
+                    {[false, true].map(resistant => Array.from({ length: Math.min(6, characterCount(resistant ? point.Rq : point.Sq)) }, (_, i) => (
+                        <Germ key={`${resistant}${i}`} res={resistant} sleep />
+                    )))}
+                </div>
             </div>
+            {Array.from({ length: Math.round(conc(point.t, design.dur) * 2) }, (_, i) => (
+                <i className="capsule particle" key={i} style={{
+                    left: `${8 + i * 31 % 85}%`,
+                    top: `${30 + i * 23 % 40}%`,
+                    animationDelay: `-${i * .2}s`,
+                }} />
+            ))}
+            <span className={`effect barrier-${effect.kind}`} style={{ animationDuration: `${effect.duration}s` }}>
+                {effect.kind === 'bounce' ? 'キン：耐性機構による効きにくさ' : '🔑 新しい作用機序で通過'}
+            </span>
+
         </div>
     );
 }

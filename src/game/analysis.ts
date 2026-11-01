@@ -47,7 +47,7 @@ export function compareDesigns(current: Design, other: Design) {
             seDrop: now.seDrop - result.seDrop,
             normFold: now.representative.normEnd / result.representative.normEnd,
             resFold: now.representative.resEnd / result.representative.resEnd,
-            cost: (cost(current) - cost(other)) * 10,
+            cost: cost(current) - cost(other),
         },
     };
 }

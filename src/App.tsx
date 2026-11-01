@@ -72,7 +72,7 @@ export function App() {
         if (level < 1 || level > 5) return;
         const next = { ...design, [key]: level };
         if (!canAfford(next)) {
-            setNotice('研究開発費が不足しています。他の性能を下げてください。');
+            setNotice('研究コインが不足しています。ほかの性能を下げると選べます。');
             setShake(true);
             setTimeout(() => setShake(false), 500);
             return;

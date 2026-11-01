@@ -1,4 +1,5 @@
 import { useId, useState } from 'react';
+import { Germ } from './Visuals';
 import { glossary } from '../../config/game';
 
 export type Term = keyof typeof glossary;
@@ -36,7 +37,7 @@ export function Glossary() {
             <dl>
                 {terms.map(term => (
                     <div key={term}>
-                        <dt>{term}</dt>
+                        <dt>{term === '薬剤感受性菌' && <Germ />}{term === '薬剤耐性' && <Germ res />}{term === '一時的耐性状態' && <Germ sleep />}{term}</dt>
                         <dd>{glossary[term]}</dd>
                     </div>
                 ))}

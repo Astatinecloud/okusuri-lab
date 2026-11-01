@@ -32,7 +32,7 @@ describe('v2 causal analysis', () => {
                 expect(item!.design).toEqual(d);
                 const r = runDesign(d);
                 expect(item!.result).toEqual(r);
-                expect(item!.delta).toEqual({ recovered: now.recovered - r.recovered, seDrop: now.seDrop - r.seDrop, normFold: now.representative.normEnd / r.representative.normEnd, resFold: now.representative.resEnd / r.representative.resEnd, cost: (cost(design) - cost(d)) * 10 });
+                expect(item!.delta).toEqual({ recovered: now.recovered - r.recovered, seDrop: now.seDrop - r.seDrop, normFold: now.representative.normEnd / r.representative.normEnd, resFold: now.representative.resEnd / r.representative.resEnd, cost: cost(design) - cost(d) });
             }
         }
         const minimal = analyzeDesign({ pot: 1, mech: 1, dur: 1, gentle: 1 });
@@ -96,7 +96,7 @@ it('plots trace sums without changing them, and distinguishes overlay line style
     expect(html).toContain('72');
     expect(JSON.stringify(trace)).toBe(before);
     expect(renderToStaticMarkup(<Germ res/>).match(/<circle/g)).toHaveLength(2);
-    expect(renderToStaticMarkup(<Germ sleep/>)).toContain('stroke-dasharray="4 4"');
+    expect(renderToStaticMarkup(<Germ sleep/>)).toContain('zzz');
 });
 it('has no v1 terminology, corrupted literals, or random generation in user-facing sources', () => {
     const sources = import.meta.glob<string>(['../ui/**/*.tsx', '../config/game.ts', '../App.tsx', '../share/card.ts', './presentation.ts', './result.ts'], { query: '?raw', import: 'default', eager: true });
