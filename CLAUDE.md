@@ -7,6 +7,6 @@
 
 ## 開発体制
 - Claude Code が設計・レビュー、Codex（`codex-companion.mjs task --write`）が実装。Codex のサンドボックスはネットワークと git 書き込みが不可のため、`npm install` とコミットは Claude が行う。
-- `src/model/`、`src/config/params.json`、`src/model/__tests__/golden.json`、`model-ref/` はモデルの正。変更する場合は `model-ref/sweep.py` でバランス確認し、`model-ref/golden.py` で golden を再生成する。
+- `model-ref/model3.py`・`src/config/params.json`・`src/config/params3.json`（= `model-ref/params3.json`）はモデルの正。変更したら `model-ref/golden3.py` で `src/model/__tests__/golden3.json` を再生成し、全設計の検証（`docs/v3-model.md` §6）をやり直す。
 - v3（1年間の耐性菌モデル）: 仕様 `docs/v3-spec.md`、モデル `docs/v3-model.md`、参照実装 `model-ref/model3.py`。
 - `main` に push すると GitHub Actions がテスト・ビルドして GitHub Pages（https://tomoalemon-cloud.github.io/okusuri-lab/）へ公開する。
