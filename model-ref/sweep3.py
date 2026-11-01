@@ -3,7 +3,7 @@ import itertools, json, math, copy, time
 import numpy as np
 import model3 as M
 
-SEEDS = 50
+SEEDS = 20
 rows = []
 t0 = time.time()
 designs = [dict(zip(M.KEYS, v)) for v in itertools.product(range(1, 6), repeat=4)]

@@ -1,103 +1,159 @@
 import defaults from '../config/params.json';
-export type Params = typeof defaults;
+import v3 from '../config/params3.json';
+import { normPpf } from './normal';
+export { normPpf, erf } from './normal';
+export const params = defaults;
+export const params3 = v3;
 export type Design = {
     pot: number;
-    mech: number;
+    bar: number;
     dur: number;
     gentle: number;
 };
-export type Patient = {
-    immune: number;
-    log10R0: number;
-    seTol: number;
-};
-export type Point = {
-    t: number;
-    S: number;
-    Sq: number;
-    R: number;
-    Rq: number;
-};
-export const params = defaults;
-export const keys = ['pot', 'mech', 'dur', 'gentle'] as const;
-// Convergent power series near zero; incomplete-gamma continued fraction in the tail.
-export function erf(x: number): number {
-    if (Math.abs(x) > 2) {
-        const z = x * x;
-        let b = z + .5, c = 1e300, d = 1 / b, h = d;
-        for (let i = 1; i < 200; i++) {
-            const a = -i * (i - .5);
-            b += 2;
-            d = a * d + b;
-            if (Math.abs(d) < 1e-300)
-                d = 1e-300;
-            c = b + a / c;
-            if (Math.abs(c) < 1e-300)
-                c = 1e-300;
-            d = 1 / d;
-            const delta = d * c;
-            h *= delta;
-            if (Math.abs(delta - 1) < 2e-16)
-                break;
+export const keys = ['pot', 'bar', 'dur', 'gentle'] as const;
+export function patients() {
+    const p = params, z = Array.from({ length: p.nPat }, (_, i) => normPpf((i + .5) / p.nPat));
+    return z.map((v, i) => ({ immune: p.immuneMean * Math.exp(p.immuneSd * v), seTol: p.seTolMean * Math.exp(p.seTolSd * z[(i * 61 + 17) % p.nPat]) }));
+}
+export function conc(t: number, dur: number) {
+    const p = params, k = Math.LN2 / p.halfLife[dur - 1];
+    let c = 0;
+    for (let i = 0; i * p.doseInterval <= t && i * p.doseInterval < v3.Ttreat; i++)
+        c += p.Cpeak * Math.exp(-k * (t - i * p.doseInterval));
+    return c;
+}
+export function killRates(t: number, d: Design) {
+    const c = conc(t, d.dur), ec = params.ec50S[d.pot - 1];
+    const hill = (e: number) => { const x = (c / e) ** params.hill; return params.Emax * x / (1 + x); };
+    return { c, kS: hill(ec), kR: hill(ec * v3.resistFoldMutant) };
+}
+export function cost(d: Design) { return keys.reduce((s, k) => s + params.levelCost[d[k] - 1], 0); }
+export function canAfford(d: Design) { return keys.every(k => Number.isInteger(d[k]) && d[k] >= 1 && d[k] <= 5) && cost(d) <= params.budget; }
+export function sideEffect(d: Design) { return params.seBase * (1 + params.sePot[d.pot - 1] + v3.seBarrier[d.bar - 1] + params.seDur[d.dur - 1]) * params.seGentle[d.gentle - 1]; }
+/** RK4 on the reference four-state ODE; emergence uses left-endpoint rates. */
+export function withinHost(d: Design, immune: number[], strain: 'S' | 'R') {
+    const p = params, dt = p.dt, steps = Math.round((v3.Ttreat + v3.Tpost) / dt), gR = p.gS * (1 - v3.cost[d.bar - 1]);
+    // Retain decaying concentrations after the last dose, exactly as model3.conc.
+    const rates = Array.from({ length: steps }, (_, i) => [0, .5, 1].map(f => killRates(i * dt + f * dt, d)));
+    const activeEnd: number[] = [], pEmerge: number[] = [], E_denovo: number[] = [], E_standing: number[] = [], final: number[][] = [];
+    for (const m of immune) {
+        let y = strain === 'S' ? [p.S0 * (1 - p.tolFrac0), p.S0 * p.tolFrac0, 0, 0] : [0, 0, p.S0 * (1 - p.tolFrac0), p.S0 * p.tolFrac0];
+        const births = new Float64Array(steps), bs = new Float64Array(steps), ds = new Float64Array(steps);
+        const rhs = (v: number[], r: ReturnType<typeof killRates>) => {
+            const [S, Sq, R, Rq] = v, N = S + Sq + R + Rq, crowd = Math.max(0, 1 - N / p.K), im = m * p.Ki / (p.Ki + N);
+            return [p.gS * crowd * S - r.kS * S - p.a * S + p.b * Sq - im * S, p.a * S - p.b * Sq, gR * crowd * R - r.kR * R - p.a * R + p.b * Rq - im * R, p.a * R - p.b * Rq];
+        };
+        for (let i = 0; i < steps; i++) {
+            const N = y[0] + y[1] + y[2] + y[3], crowd = Math.max(0, 1 - N / p.K);
+            births[i] = p.gS * crowd * y[0];
+            bs[i] = gR * crowd;
+            ds[i] = rates[i][0].kR + m * p.Ki / (p.Ki + N);
+            const k1 = rhs(y, rates[i][0]), k2 = rhs(y.map((v, j) => v + dt / 2 * k1[j]), rates[i][1]), k3 = rhs(y.map((v, j) => v + dt / 2 * k2[j]), rates[i][1]), k4 = rhs(y.map((v, j) => v + dt * k3[j]), rates[i][2]);
+            y = y.map((v, j) => Math.max(0, v + dt / 6 * (k1[j] + 2 * k2[j] + 2 * k3[j] + k4[j])));
+            if (i + 1 === Math.round(v3.Ttreat / dt))
+                activeEnd.push(y[0] + y[2]);
         }
-        return Math.sign(x) * (1 - Math.exp(-z + .5 * Math.log(z) - Math.log(Math.PI) / 2) * h);
+        final.push(y);
+        if (strain === 'S') {
+            // Backward lineage survival: terminal G(H)=1, survival at birth is 1/G(t).
+            let G = 1;
+            const gt = new Float64Array(steps);
+            for (let i = steps - 1; i >= 0; i--) {
+                G = 1 + ds[i] * dt + Math.exp(-(bs[i] - ds[i]) * dt) * (G - 1);
+                gt[i] = G;
+            }
+            const freq = v3.freq[d.bar - 1], mu = freq * v3.cost[d.bar - 1];
+            let de = 0;
+            for (let i = 0; i < steps; i++)
+                de += mu * births[i] * dt / gt[i];
+            const st = p.S0 * freq / gt[0];
+            E_denovo.push(de);
+            E_standing.push(st);
+            pEmerge.push(1 - Math.exp(-(de + st)));
+        }
     }
-    let term = x, sum = x;
-    for (let n = 1; n < 150; n++) {
-        term *= -x * x / n;
-        const add = term / (2 * n + 1);
-        sum += add;
-        if (Math.abs(add) < 1e-17)
-            break;
-    }
-    return 2 / Math.sqrt(Math.PI) * sum;
+    return { activeEnd, pEmerge, E_denovo, E_standing, final };
 }
-export function normPpf(q: number) { let lo = -10, hi = 10; for (let i = 0; i < 80; i++) {
-    const mid = (lo + hi) / 2;
-    if (.5 * (1 + erf(mid / Math.SQRT2)) < q)
-        lo = mid;
-    else
-        hi = mid;
-} return (lo + hi) / 2; }
-export function patients(p: Params = defaults): Patient[] { const z = Array.from({ length: p.nPat }, (_, i) => normPpf((i + .5) / p.nPat)); return z.map((v, i) => ({ immune: p.immuneMean * Math.exp(p.immuneSd * v), log10R0: p.log10R0Mean + p.log10R0Sd * z[i * 37 % p.nPat], seTol: p.seTolMean * Math.exp(p.seTolSd * z[(i * 61 + 17) % p.nPat]) })); }
-export function conc(t: number, dur: number, p: Params = defaults) { const k = Math.LN2 / p.halfLife[dur - 1]; let c = 0; for (let i = 0; i <= Math.floor(t / p.doseInterval); i++)
-    c += p.Cpeak * Math.exp(-k * (t - i * p.doseInterval)); return c; }
-export function killRates(t: number, d: Design, p: Params = defaults) { const c = conc(t, d.dur, p), ec = p.ec50S[d.pot - 1]; const hill = (e: number) => { const x = (c / e) ** p.hill; return p.Emax * x / (1 + x); }; return { c, kS: hill(ec), kR: hill(ec * p.resistFold[d.mech - 1]) }; }
-export function cost(d: Design, p: Params = defaults) { return keys.reduce((s, k) => s + p.levelCost[d[k] - 1], 0); }
-export function canAfford(d: Design, p: Params = defaults) { return keys.every(k => Number.isInteger(d[k]) && d[k] >= 1 && d[k] <= 5) && cost(d, p) <= p.budget; }
-export function sideEffect(d: Design, p: Params = defaults) { return p.seBase * (1 + p.sePot[d.pot - 1] + p.seMech[d.mech - 1] + p.seDur[d.dur - 1]) * p.seGentle[d.gentle - 1]; }
-type Rates = ReturnType<typeof killRates>;
-function schedule(d: Design, p: Params) { return Array.from({ length: Math.round(p.T / p.dt) }, (_, i) => [0, .5, 1].map(f => killRates(i * p.dt + f * p.dt, d, p))); }
-function integrate(p: Params, pat: Patient, rates: Rates[][]): Point[] {
-    const r = 10 ** pat.log10R0, f = p.tolFrac0, y = new Float64Array([p.S0 * (1 - f), p.S0 * f, r * (1 - f), r * f]);
-    const point = (t: number): Point => ({ t, S: y[0], Sq: y[1], R: y[2], Rq: y[3] });
-    const trace = [point(0)];
-    const rhs = (v: Float64Array, k: Rates, out: Float64Array) => { const S = v[0], Sq = v[1], R = v[2], Rq = v[3], N = S + Sq + R + Rq, c = Math.max(0, 1 - N / p.K), im = pat.immune * p.Ki / (p.Ki + N), iq = im * p.immuneTolFrac; out[0] = p.gS * c * S - k.kS * S - p.a * S + p.b * Sq - im * S; out[1] = p.a * S - p.b * Sq - p.tolKillFrac * k.kS * Sq - iq * Sq; out[2] = p.gR * c * R - k.kR * R - p.a * R + p.b * Rq - im * R; out[3] = p.a * R - p.b * Rq - p.tolKillFrac * k.kR * Rq - iq * Rq; };
-    const k1 = new Float64Array(4), k2 = new Float64Array(4), k3 = new Float64Array(4), k4 = new Float64Array(4), tmp = new Float64Array(4), dt = p.dt, every = Math.max(1, Math.round(1 / dt));
-    for (let i = 0; i < rates.length; i++) {
-        rhs(y, rates[i][0], k1);
-        for (let j = 0; j < 4; j++)
-            tmp[j] = y[j] + dt / 2 * k1[j];
-        rhs(tmp, rates[i][1], k2);
-        for (let j = 0; j < 4; j++)
-            tmp[j] = y[j] + dt / 2 * k2[j];
-        rhs(tmp, rates[i][1], k3);
-        for (let j = 0; j < 4; j++)
-            tmp[j] = y[j] + dt * k3[j];
-        rhs(tmp, rates[i][2], k4);
-        for (let j = 0; j < 4; j++)
-            y[j] = Math.max(0, y[j] + dt / 6 * (k1[j] + 2 * k2[j] + 2 * k3[j] + k4[j]));
-        for (let j = 0; j < 4; j++)
-            if (!Number.isFinite(y[j]) || y[j] < 0)
-                throw new Error("Non-finite or negative model state");
-        if ((i + 1) % every === 0)
-            trace.push(point((i + 1) * dt));
-    }
-    return trace;
+export type PatientTable = {
+    cureS: boolean[];
+    cureR: boolean[];
+    okSE: boolean[];
+    pEmerge: number[];
+    E_denovo: number[];
+    E_standing: number[];
+    se: number;
+};
+const tables = new Map<string, PatientTable>();
+export function patientTable(d: Design): PatientTable {
+    const key = keys.map(k => d[k]).join('');
+    const cached = tables.get(key);
+    if (cached)
+        return cached;
+    const pats = patients(), immune = pats.map(p => p.immune), s = withinHost(d, immune, 'S'), r = withinHost(d, immune, 'R'), se = sideEffect(d);
+    const tab = { cureS: s.activeEnd.map(n => n < params.cureThreshold), cureR: r.activeEnd.map(n => n < params.cureThreshold), okSE: pats.map(p => se < p.seTol), pEmerge: s.pEmerge, E_denovo: s.E_denovo, E_standing: s.E_standing, se };
+    tables.set(key, tab);
+    return tab;
 }
-export function simulate(d: Design, p: Params = defaults, patient: Patient = { immune: p.immuneMean, log10R0: p.repLog10R0, seTol: 1 }) { return integrate(p, patient, schedule(d, p)); }
-export function runDesign(d: Design, p: Params = defaults) { const rates = schedule(d, p), se = sideEffect(d, p); let recovered = 0, cured = 0, seDrop = 0; const outcomes = patients(p).map(pat => { const tr = integrate(p, pat, rates), end = tr[tr.length - 1], ok = end.S + end.R < p.cureThreshold, bad = se >= pat.seTol; if (ok)
-    cured++; if (bad)
-    seDrop++; if (ok && !bad)
-    recovered++; return bad ? 'side' : ok ? 'well' : 'ill'; }); const trace = integrate(p, { immune: p.immuneMean, log10R0: p.repLog10R0, seTol: 1 }, rates), e = trace[trace.length - 1]; return { recovered, cured, seDrop, se, outcomes, representative: { trace, normEnd: e.S + e.Sq, resEnd: e.R + e.Rq, resTolEnd: e.Rq, actEnd: e.S + e.R, normStart: p.S0, resStart: 10 ** p.repLog10R0 } }; }
-export type Result = ReturnType<typeof runDesign>;
+// Match Python's ties-to-even rounding for the normal approximations.
+const round = (v: number) => { const f = Math.floor(v); return v - f === .5 ? (f % 2 === 0 ? f : f + 1) : Math.round(v); };
+export class Rng {
+    constructor(private a: number) { this.a = a >>> 0; }
+    random() { this.a = (this.a + 0x6D2B79F5) >>> 0; let t = this.a; t = Math.imul(t ^ (t >>> 15), t | 1); t ^= t + Math.imul(t ^ (t >>> 7), t | 61); return ((t ^ (t >>> 14)) >>> 0) / 4294967296; }
+    normal() { const u1 = Math.max(this.random(), 1e-12), u2 = this.random(); return Math.sqrt(-2 * Math.log(u1)) * Math.cos(2 * Math.PI * u2); }
+    poisson(lam: number) { if (lam <= 0)
+        return 0; if (lam < 30) {
+        const L = Math.exp(-lam);
+        let k = 0, prod = this.random();
+        while (prod > L) {
+            k++;
+            prod *= this.random();
+        }
+        return k;
+    } return Math.max(0, round(lam + Math.sqrt(lam) * this.normal())); }
+    binomial(n: number, q: number) { if (n <= 0 || q <= 0)
+        return 0; if (q >= 1)
+        return n; if (n < 50) {
+        let s = 0;
+        for (let i = 0; i < n; i++)
+            if (this.random() < q)
+                s++;
+        return s;
+    } const mean = n * q; if (mean < 30)
+        return Math.min(n, this.poisson(mean)); return Math.min(n, Math.max(0, round(mean + Math.sqrt(n * q * (1 - q)) * this.normal()))); }
+}
+export type Month = {
+    month: number;
+    YS: number;
+    YR: number;
+    frac: number;
+    emergences: number;
+};
+/** One-day stochastic tau leaps. RNG draw order is part of the shared-seed contract. */
+export function community(d: Design, tab: PatientTable, seed: number) {
+    const cp = v3.community, mean = (a: number[]) => a.reduce((s, v) => s + v, 0) / a.length;
+    const qE = mean(tab.pEmerge), eS = mean(tab.cureS.map((v, i) => v && tab.okSE[i] ? 1 - tab.pEmerge[i] : 0)), eR = mean(tab.cureR.map((v, i) => +(v && tab.okSE[i]))), rng = new Rng(seed);
+    let YS = cp.Y0, YR = 0, emergences = 0;
+    const daily: number[][] = [];
+    for (let i = 0; i < cp.days; i++) {
+        const X = Math.max(0, cp.N - YS - YR), newS = rng.poisson(cp.beta * X * YS / cp.N + cp.importRate), newR = rng.poisson(cp.beta * (1 - v3.cost[d.bar - 1]) * X * YR / cp.N), pT = 1 - Math.exp(-cp.tau), pG = 1 - Math.exp(-cp.gamma);
+        const treatS = rng.binomial(YS, pT), emerg = rng.binomial(treatS, qE), curedS = rng.binomial(treatS - emerg, eS / Math.max(1e-12, 1 - qE)), natS = rng.binomial(YS - treatS, pG), treatR = rng.binomial(YR, pT), curedR = rng.binomial(treatR, eR), natR = rng.binomial(YR - treatR, pG);
+        YS = Math.max(0, YS + newS - emerg - curedS - natS);
+        YR = Math.max(0, YR + newR + emerg - curedR - natR);
+        emergences += emerg;
+        daily.push([YS, YR, emerg]);
+    }
+    const months: Month[] = Array.from({ length: 12 }, (_, m) => { const seg = daily.slice(Math.floor(m * cp.days / 12), Math.floor((m + 1) * cp.days / 12)), YS = mean(seg.map(x => x[0])), YR = mean(seg.map(x => x[1])); return { month: m + 1, YS, YR, frac: YS + YR > 0 ? YR / (YS + YR) : 0, emergences: seg.reduce((s, x) => s + x[2], 0) }; });
+    return { months, eS, eR, qE, emergences, daily };
+}
+export type PatientStatus = 'well' | 'ill' | 'emerged' | 'resistant' | 'side';
+export function yearOutcome(d: Design, seed: number, tab = patientTable(d)) {
+    const com = community(d, tab, seed), rng = new Rng(seed ^ 0x9E3779B9), kinds: string[] = [], outcomes: PatientStatus[] = [];
+    for (let k = 0; k < 100; k++) {
+        const resistant = rng.random() < com.months[Math.floor(k * 12 / 100)].frac, emerged = resistant ? false : rng.random() < tab.pEmerge[k];
+        kinds.push(resistant ? 'R' : emerged ? 'E' : 'S');
+        outcomes.push(!tab.okSE[k] ? 'side' : resistant ? (tab.cureR[k] ? 'well' : 'resistant') : emerged ? 'emerged' : tab.cureS[k] ? 'well' : 'ill');
+    }
+    return { seed: seed >>> 0, recovered: outcomes.filter(v => v === 'well').length, community: com, kinds, outcomes, seDrop: outcomes.filter(v => v === 'side').length };
+}
+export const runDesign = yearOutcome;
+export type Result = ReturnType<typeof yearOutcome>;

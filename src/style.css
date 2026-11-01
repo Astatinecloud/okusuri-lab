@@ -294,10 +294,6 @@ progress {
     min-height:20px;
     margin:0
 }
-.analysis-card {
-    padding:18px 0;
-    border-bottom:1px solid #e1dfd2
-}
 .highlight {
     padding:16px;
     border-left:4px solid #39745e;
@@ -306,16 +302,6 @@ progress {
 .warning,
 .card h3.warning {
     color:#a04b2a
-}
-.cost-bar {
-    height:24px;
-    display:flex;
-    background:#edf0e7;
-    border-radius:4px;
-    overflow:hidden
-}
-.segments {
-    margin:12px 0
 }
 .table-scroll {
     overflow:auto
@@ -565,30 +551,6 @@ dialog::backdrop {
     display: flex;
     align-items: center;
 }
-.line-sample {
-    display: inline-block;
-    width: 40px;
-    height: 12px;
-    flex: none;
-}
-.chart-legend {
-    font-size: 12px;
-    line-height: 1.8;
-}
-.causal-narrative {
-    border-left: 3px solid #39745e;
-    padding-left: 12px;
-}
-.analysis-note {
-    color: #a04b2a;
-}
-.next-step {
-    margin: 12px 0;
-    padding: 12px 16px;
-    border-left: 3px solid #39745e;
-    background: #edf0e7;
-    font-size: 14px;
-}
 /* Original v1 illustration and color treatment, with readable v2 text. */
 :root {
     background: #FFF8EC;
@@ -697,7 +659,7 @@ button[aria-pressed=true]:hover,.primary:hover {
 .setting-pot {
     border-top: 5px solid #c6d999;
 }
-.setting-mech {
+.setting-bar {
     border-top: 5px solid #cdb7df;
 }
 .setting-dur {
@@ -709,7 +671,7 @@ button[aria-pressed=true]:hover,.primary:hover {
 .levels button {
     border-radius: 50%;
 }
-.setting-mech .levels button[aria-pressed=true] {
+.setting-bar .levels button[aria-pressed=true] {
     background: #cdb7df;
     color: #294d46;
     border-color: #ad91c4;
@@ -805,10 +767,7 @@ button[aria-pressed=true]:hover,.primary:hover {
 .tooltip-note,dialog {
     background: #fffaf1;
 }
-.warning,.card h3.warning,.analysis-note {
-    color: #a04b2a;
-}
-.warning {
+.warning,.card h3.warning,.warning {
     border-left-color: #c9653b;
 }
 .result-image {
@@ -894,10 +853,27 @@ button[aria-pressed=true]:hover,.primary:hover {
         scroll-behavior: auto!important;
     }
 }
-.chart-legend .germ {
-    width: 24px;
-    flex: none;
-}
 .primary {
     border-color: #579a80;
 }
+.rank-ribbon { text-align: center; padding: 1.5rem 1rem; border-radius: 24px; margin-bottom: 1.5rem; background: #e5efdf; }
+.rank-1 { background: #f5ecdb; }
+.rank-2 { background: #e8edf0; }
+.rank-3 { background: #e5efdf; }
+.rank-4 { background: #e1eee6; }
+.rank-5 { background: #f6e8b8; }
+.researcher-rank { font-size: clamp(2.6rem, 6vw, 3rem); font-weight: 800; line-height: 1.4; overflow-wrap: anywhere; }
+.researcher-rank span, .researcher-rank strong { display: block; font-size: inherit; }
+.coin-summary { font-size: 1rem; }
+.patient-grid { display: grid; grid-template-columns: repeat(10,minmax(0,1fr)); gap: 3px; max-width: 600px; margin: 1rem auto; }
+.patient-grid .patient-icon { width: 100%; height: auto; }
+.recovered-total { text-align: center; font-size: 1.3rem; }
+.recovered-total strong { font-size: 2.4rem; }
+.table-scroll { overflow-x: auto; }
+.table-scroll table { width: 100%; border-collapse: collapse; margin: 1rem 0; }
+.table-scroll th, .table-scroll td { padding: .7rem; border-bottom: 1px solid #dce7da; text-align: left; }
+.investment-bars { margin: 1.5rem 0; }
+.investment-bars > div { display: grid; grid-template-columns: 5em 1fr 4em; align-items: center; gap: .5rem; margin: .7rem 0; }
+.bar-track { background: #eee8f2; height: 24px; border-radius: 6px; overflow: hidden; }
+.bar-track > div { height: 100%; background: #b291cc; }
+.fraction-chart { max-height: 200px; }

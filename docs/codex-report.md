@@ -171,3 +171,31 @@ Validation:
 - Extended the mocked-canvas test to check cream fill, actual germ drawing calls, used coin count, unit disclaimer and absence of obsolete point text. Updated prior tests where the user explicitly requested replacement of square outcome symbols, gray sleeping circles or point units.
 - npm.cmd run build passes TypeScript and Vite production build. git diff --check passes. No changes to src/model/, src/config/params.json, golden.json or model-ref/.
 - No new browser/device playthrough, actual canvas-font screenshot inspection or camera QR scan was performed in this pass. Artwork restoration is checked through server-rendered SVG/markup and canvas drawing assertions; contrast pairs are checked numerically. No requested implementation item is intentionally deferred.
+
+## v3
+
+Date: 2026-11-01 (Asia/Tokyo). Branch: `v3-resistance-year`. Changes are uncommitted; no deployment was performed.
+
+### 実装内容
+
+- `model-ref/model3.py` を基準に、144時間の4状態RK4体内モデル、72時間時点の治癒判定、耐性菌系統の後ろ向き生存計算、既存耐性菌と新規変異に由来する成立確率をTypeScriptに実装しました。患者の免疫・副作用耐性は既存の正規分位点配置を維持し、旧log10R0は使用しません。
+- 365日の地域SIS型確率モデル、月平均感染者数・耐性菌割合・成立件数、各月に治療する100人の独立乱数系列を実装しました。mulberry32、Poisson・二項の分岐、Box–Muller、Pythonの偶数丸め、乱数の呼び出し順を参照実装に合わせています。
+- 研究項目を `pot/bar/dur/gentle` と新しい4表示名に統一しました。耐性対策は出現頻度・変異率・増殖コストに作用し、耐性菌への殺菌力を変えないことを説明しています。9枚・5段階の研究コインUI、既存の配色、フラスコ・菌・患者の絵を再利用しました。
+- タイトル→ストーリー→設計→約12秒の年間シミュレーション→結果→保存・共有の流れに更新しました。シミュレーションの菌の絵は、その月の割合を40個で近似します。月次コメントは成立件数と割合から生成します。
+- 結果最上部に大きな中央ランクを配置しました。ランク配列の名称・星・95/80/60/30基準は維持しています。年間感染者数の2本の実線と割合の別棒グラフ、実データの読み解き、患者100人の5分類、コインと4レベル、折りたたみ科学解説を表示します。副作用中断は他の不成功分類より優先し、分類合計を100人に保っています。
+- 同一シードでのbar=1との比較と、各bar=1〜5・200シード（0〜199）の広がる確率・平均回復人数を追加しました。200シード統計はModule Web Workerで計算し、pot/dur/gentleごとにPromiseをメモ化します。失敗時の再試行と画面を離れた後の状態更新抑制も実装しています。
+- 開始時に `crypto.getRandomValues` でuint32シードを生成し、共有URLへ `&s=` を追加しました。旧URLは `1000 + 4桁の設計値` の固定シードで再現します。保存PNGはランクを最大文字で中央に配置し、回復人数、12か月目の耐性菌割合、コイン、4レベル、シード、同一結果URLのQRを含めます。
+- v2の性能分析・任意パラメータ比較・重ね描き・一時的耐性状態のグラフと関連モジュールを削除しました。旧テストをv3用に置き換えました。`model-ref/`、`src/config/params.json`、`src/config/params3.json` への書き込みは行っていません。
+
+### 検証
+
+- golden3: 6設計すべてのcureS/cureR/okSE、pEmerge（相対誤差1e-6）、各3シードの回復人数・患者種類・月次YS/YR/frac/成立件数（浮動小数1e-9）、年間成立件数、rngSeed7を確認しました。
+- 数理: pot×durの全25背景とbar全5段階を100人で計算し、成立確率の単調非増加・レベル5でも正・菌数の非負有限性を確認しました。gentleは体内計算に関与しないため全625設計をカバーします。barによるkR不変、365日状態の非負整数性、割合範囲、回復範囲、同一シード再現、代表設計200シードでbar=5の広がる確率がbar=1より低いことも確認しました。
+- 機能: ランク配列の不変と2.6〜3rem対コイン1rem、予算・段階数・表示名、導入・年間表示・再プレイ導線、100人と5分類、実線のみのグラフ、データ由来コメント、菌の絵の割合、URL新旧・不正シード、QR生成、モックCanvasでの保存内容と文字サイズを確認しました。Workerへの投入・終了・メモ化・エラー後の再試行もテストしています。
+- Windowsの実行ポリシーでnpm.ps1が拒否されるため、同じnpmスクリプトを `npm.cmd test` と `npm.cmd run build` から実行しています。
+- 最終 `npm.cmd test`: **4ファイル・20テスト成功**、71.72秒。最終 `npm.cmd run build`: **TypeScript・Vite本番ビルド成功**（Workerの独立バンドルを含む）。`git diff --check` 成功、禁止された参照モデル・パラメータの追跡ファイル差分なし。
+
+### 未完了・不確かな点
+
+- 仕様が指定するストーリー「依頼文」の原文、および `docs/v3-model.md` はリポジトリにありません。原文を非同期で問い合わせましたが、現時点では既存の導入文とv3仕様に沿うストーリーを実装しています。原文との逐語一致は未確認です。科学解説は `model3.py` と `v3-spec.md` の式・仮定から構成しました。
+- ブラウザー操作ホストが利用できず、Edgeの直接操作も `Computer Use was not approved to use Microsoft Edge` と拒否されたため、実ブラウザー・モバイルでの目視、実Canvasのフォント描画、カメラによるQR読取、実際の画像共有は未確認です。静的Reactレンダリング・モックCanvas・QR生成のテストと本番ビルドで代替しました。追加の承認は要求していません。

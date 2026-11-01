@@ -1,149 +1,51 @@
-import { useEffect, useState } from 'react';
-import { cost, type Design, type Result as ModelResult } from '../../model';
-import { ranks, science } from '../../config/game';
-import { rank, badge } from '../../game/result';
-import { prepareAnalysis, compareDesigns, comparisonDesign, type Analysis, type Comparison, type Key } from '../../game/analysis';
-import { formatNumber, formatPercent } from '../../game/presentation';
+import { useEffect, useMemo, useState } from 'react';
+import { cost, keys, yearOutcome, type Design, type Result as ModelResult, type PatientStatus } from '../../model';
+import { labels, science } from '../../config/game';
+import { rank } from '../../game/result';
+import { investmentStatistics, type InvestmentRow } from '../../game/investment';
 import { initial, type Screen } from '../../game/types';
-import { Chart } from '../components/Visuals';
-import { PatientIcon, PatientLegend } from '../components/PatientIcon';
-import { BacteriaCard } from '../components/BacteriaCard';
-import { Glossary, Info } from '../components/Info';
-import { PerformanceAnalysis } from '../components/PerformanceAnalysis';
-import { ParameterComparison } from '../components/ParameterComparison';
-
+import { YearChart } from '../components/YearChart';
+import { PatientIcon, patientLabels } from '../components/PatientIcon';
+import { Glossary } from '../components/Info';
 type Props = {
     r: ModelResult;
     name: string;
     design: Design;
     save: () => void;
-    setScreen: (screen: Screen) => void;
-    setDesign: (design: Design) => void;
-    setModal: (modal: string) => void;
+    setScreen: (s: Screen) => void;
+    setDesign: (d: Design) => void;
+    setModal: (m: string) => void;
 };
-
-function ResultSummary({ result, design }: { result: ModelResult; design: Design }) {
-    const representative = result.representative;
-    const researcher = rank(result.recovered);
-    const remaining = 100 - result.recovered - result.seDrop;
-    return (
-        <section className="card">
-            <h2>① シミュレーション結果</h2>
-            <h3>回復した患者数 <em>{result.recovered}</em> / 100</h3>
-            <p>回復 {result.recovered}人 / 感染が残存 {remaining}人 / 副作用で中断 {result.seDrop}人 <Info term="副作用" /></p>
-            <div className="people" role="img" aria-label={'回復 ' + result.recovered + '人、感染が残存 ' + remaining + '人、副作用により治療継続が困難 ' + result.seDrop + '人'}>
-                {result.outcomes.map((status, index) => <PatientIcon key={index} status={status as 'well' | 'ill' | 'side'} />)}
-            </div>
-            <PatientLegend />
-            <div className="stats">
-                <BacteriaCard resistant={false} start={representative.normStart} end={representative.normEnd} />
-                <BacteriaCard resistant start={representative.resStart} end={representative.resEnd} />
-            </div>
-            <p>使った研究コイン {cost(design)} / 9</p>
-            <p>{'★'.repeat(researcher.stars)} {researcher.name} {badge(design, result) && ' · コスト効率賞'}</p>
-            <details>
-                <summary>ランクの基準</summary>
-                {ranks.map((value, index) => <p key={value.min}>
-                    {value.min}〜{index === 0 ? 100 : ranks[index - 1].min - 1}人：{'★'.repeat(value.stars)} {value.name}
-                </p>)}
-                <p>80人以上かつ研究コインに余りがあるとコスト効率賞。</p>
-            </details>
-            <p className="tiny">代表患者＝免疫が平均的で、耐性菌が初期に10万個（感受性菌の1000分の1）含まれる患者 <Info term="免疫" /></p>
-        </section>
-    );
+const percent = (fraction: number) => (fraction * 100).toFixed(1) + '%';
+export function ResearcherRank({ recovered }: {
+    recovered: number;
+}) {
+    const value = rank(recovered);
+    return <section className={'rank-ribbon rank-' + value.stars} aria-label="研究者ランク"><p>あなたの研究者ランク</p><div className="researcher-rank"><span>{'★'.repeat(value.stars)}</span><strong>{value.name}</strong></div></section>;
 }
-
 export function Result({ r, name, design, save, setScreen, setDesign }: Props) {
-    const [analysis, setAnalysis] = useState<Analysis | null>(null);
-    const [attribute, setAttribute] = useState<Key>('pot');
-    const [direction, setDirection] = useState(-1);
-    const [comparison, setComparison] = useState<Comparison | null>(null);
-    const [loading, setLoading] = useState(false);
-    const [overlay, setOverlay] = useState(true);
-    const [showQ, setShowQ] = useState(false);
-
-    useEffect(() => {
-        let active = true;
-        setAnalysis(null);
-        prepareAnalysis(design).then(result => {
-            if (!active) return;
-            const selected = result.strongest ?? 'pot';
-            setAnalysis(result);
-            setAttribute(selected);
-            setDirection(design[selected] === 1 ? 1 : -1);
-        });
-        return () => { active = false; };
-    }, [design]);
-
-    useEffect(() => {
-        setComparison(null);
-        const other = comparisonDesign(design, attribute, direction);
-        if (!other) {
-            setLoading(false);
-            return;
-        }
-        setLoading(true);
-        const timer = setTimeout(() => {
-            setComparison(compareDesigns(design, other));
-            setLoading(false);
-        }, 0);
-        return () => clearTimeout(timer);
-    }, [design, attribute, direction]);
-
-    function replay(reset: boolean) {
-        if (reset) setDesign(initial);
-        history.replaceState(null, '', location.pathname + location.search);
-        setScreen(reset ? 'title' : 'develop');
-    }
-
-    const representative = r.representative;
-    const sixHours = representative.trace.find(point => point.t === 6)!;
-    const final = representative.trace.at(-1)!;
-    const priority = r.seDrop >= 20 ? 5 : representative.resEnd / representative.resStart > .01 ? 1 : 2;
-
-    return (
-        <>
-            <div className="heading"><small>RESEARCH REPORT</small><h1>「{name}」の評価</h1></div>
-            <ResultSummary result={r} design={design} />
-            <section className="card">
-                <h2>② 細菌数の推移 <Info term="薬剤耐性" /></h2>
-                <label className="check">
-                    <input type="checkbox" checked={overlay} onChange={event => setOverlay(event.target.checked)} />
-                    比較を重ねて表示（④の比較設定）
-                </label>
-                <div className="inline-help">
-                    <label className="check">
-                        <input type="checkbox" checked={showQ} onChange={event => setShowQ(event.target.checked)} />
-                        一時的耐性状態も表示
-                    </label>
-                    <Info term="一時的耐性状態" />
-                </div>
-                <Chart trace={representative.trace} comparison={overlay ? comparison?.result.representative.trace : undefined} showQ={showQ} />
-                <p>
-                    感受性菌は最初の6時間で{formatNumber(representative.normStart)}から{formatNumber(sixHours.S + sixHours.Sq)}になりました。
-                    耐性菌は72時間後に{formatNumber(representative.resEnd)}残りました。
-                    残った耐性菌の{formatPercent(final.Rq / representative.resEnd * 100)}は一時的耐性状態です。
-                </p>
-            </section>
-            <PerformanceAnalysis design={design} analysis={analysis} />
-            <ParameterComparison design={design} analysis={analysis} comparison={comparison} attribute={attribute}
-                direction={direction} loading={loading} selectAttribute={setAttribute} selectDirection={setDirection} />
-            <section className="card">
-                <h2>⑤ 科学的な解説</h2>
-                <article className="science-card"><h3>{science[priority][0]}</h3><p>{science[priority][1]}</p></article>
-                <details>
-                    <summary>その他の科学的背景とモデルの限界</summary>
-                    {science.filter((_, index) => index !== priority).map(([title, text]) => (
-                        <article className="science-card" key={title}><h3>{title}</h3><p>{text}</p></article>
-                    ))}
-                </details>
-                <Glossary />
-            </section>
-            <div className="actions">
-                <button className="primary" onClick={save}>結果を保存・共有</button>
-                <button onClick={() => replay(false)}>設計を変えて再挑戦</button>
-                <button onClick={() => replay(true)}>最初から</button>
-            </div>
-        </>
-    );
+    const [stats, setStats] = useState<InvestmentRow[] | null>(null), [error, setError] = useState('');
+    const comparison = useMemo(() => yearOutcome({ ...design, bar: 1 }, r.seed), [design, r.seed]);
+    useEffect(() => { let active = true; setStats(null); setError(''); investmentStatistics(design).then(rows => { if (active)
+        setStats(rows); }).catch(() => { if (active)
+        setError('統計を計算できませんでした。結果画面を開き直してください。'); }); return () => { active = false; }; }, [design]);
+    const months = r.community.months, first = months[0], last = months[11], currentStats = stats?.[design.bar - 1];
+    function replay(reset: boolean) { if (reset)
+        setDesign(initial); history.replaceState(null, '', location.pathname + location.search); setScreen(reset ? 'title' : 'develop'); }
+    return <>
+ <ResearcherRank recovered={r.recovered}/>
+ <div className="heading"><small>RESEARCH REPORT · 1年間 / 12か月</small><h1>「{name}」の評価</h1></div>
+ <section className="card"><h2>① 1年間の細菌の変化</h2><YearChart months={months}/>
+ <p>1か月目の地域の月平均感染者数は、新薬が効く菌が{first.YS.toFixed(1)}人、耐性菌が{first.YR.toFixed(1)}人でした。12か月目はそれぞれ{last.YS.toFixed(1)}人、{last.YR.toFixed(1)}人で、耐性菌の割合は{percent(last.frac)}でした。</p><p>地域で治療中に耐性が成立した件数は、1年間で{r.community.emergences}件です。下の100人は、この地域の各月の割合に応じた感染を治療した結果です。</p></section>
+ <section className="card"><h2>② 100人の患者の回復人数</h2><p className="recovered-total"><strong>{r.recovered}</strong> / 100人が回復</p>
+ <div className="patient-grid" aria-label="100人の治療結果">{r.outcomes.map((status, i) => <span key={i} title={(i + 1) + '人目・' + (Math.floor(i * 12 / 100) + 1) + 'か月目：' + patientLabels[status]}><PatientIcon status={status}/></span>)}</div>
+ <div className="legend patient-legend">{(Object.keys(patientLabels) as PatientStatus[]).map(s => <span key={s}><PatientIcon status={s}/>{patientLabels[s]}：{r.outcomes.filter(v => v === s).length}人</span>)}</div><p className="tiny">副作用で中断した患者は、感染の種類によらず「副作用で中断」に分類しています。</p></section>
+ <section className="card"><h2>③ 耐性対策への研究投資の効果</h2><p>耐性の生じにくさだけをレベル1に戻した参考比較です。他の性能は同じで、比較には研究コインの上限を適用しません。</p>
+ <div className="table-scroll"><table><caption>同じシード（{r.seed}）での結果</caption><thead><tr><th>設計</th><th>回復人数</th><th>12か月目の耐性菌割合</th></tr></thead><tbody><tr><th>現在（レベル{design.bar}）</th><td>{r.recovered}人</td><td>{percent(last.frac)}</td></tr><tr><th>レベル1</th><td>{comparison.recovered}人</td><td>{percent(comparison.community.months[11].frac)}</td></tr></tbody></table></div>
+ <p>200シード（0〜199）での統計。「広がった」は12か月目の耐性菌割合が10%以上になった場合です。1回の結果と統計は異なることがあります。</p>
+ {stats && currentStats ? <><div className="table-scroll"><table><caption>200シードの統計</caption><thead><tr><th>設計</th><th>広がった確率</th><th>平均回復人数</th></tr></thead><tbody>{[currentStats, stats[0]].map((v, i) => <tr key={i}><th>{i ? 'レベル1' : '現在（レベル' + design.bar + '）'}</th><td>{percent(v.spread)}</td><td>{v.meanRecovered.toFixed(1)}人</td></tr>)}</tbody></table></div><div className="investment-bars" role="img" aria-label="耐性の生じにくさレベル1〜5の広がった確率">{stats.map(s => <div key={s.level}><span>レベル{s.level}</span><div className="bar-track"><div style={{ width: percent(s.spread) }}/></div><strong>{percent(s.spread)}</strong></div>)}</div></> : <p role="status">{error || '各レベル200シードの統計を計算しています…'}</p>}</section>
+ <section className="card"><p className="coin-summary">研究コインの使用枚数：{cost(design)} / 9枚</p>{keys.map(k => <p key={k}>{labels[k]}：レベル{design[k]}</p>)}</section>
+ <section className="card"><details><summary>科学的な解説</summary>{science.map(([title, text]) => <article className="science-card" key={title}><h3>{title}</h3><p>{text}</p></article>)}<Glossary /></details></section>
+ <div className="actions"><button className="primary" onClick={save}>結果を保存・共有</button><button onClick={() => replay(false)}>もう一度つくる（設定を保持）</button><button onClick={() => replay(true)}>最初から</button></div>
+ </>;
 }
