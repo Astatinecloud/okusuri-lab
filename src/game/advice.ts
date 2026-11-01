@@ -10,6 +10,7 @@ export function metrics(_design: Design, result: Result, table: PatientTable) {
     result.outcomes.forEach(status => counts[status]++);
     return {...counts, sCure: meanCure(table), spread: result.community.months[11].frac >= params3.spreadThreshold};
 }
+export type Metrics = ReturnType<typeof metrics>;
 
 export const evaluationSeeds = (currentSeed: number) => [currentSeed >>> 0, ...Array.from({length: 30}, (_, i) => i)];
 export type Evaluation = {meanRecovered: number; counts: Counts; spreadProbability: number};
@@ -55,22 +56,36 @@ export function mainIssue(m: ReturnType<typeof metrics>): 'resistance' | 'side' 
     const largest = issues.sort((a,b) => b.count-a.count)[0];
     return largest.count >= 5 ? largest.kind : null;
 }
+export function illSentence(gainDur: number, gainPot: number, preferred?: 'pot'|'dur'): string {
+    if (Math.abs(gainDur-gainPot) < .05)
+        return '薬の殺菌力や効果が続く時間が足りず、新薬が効く細菌が残ってしまった患者さんがいました。';
+    return (preferred ?? (gainDur > gainPot ? 'dur' : 'pot')) === 'dur'
+        ? '薬は細菌に作用しましたが、効果が長続きせず、細菌を抑えきれなかった患者さんがいました。'
+        : '薬の殺菌力が足りず、新薬が効く細菌が残ってしまった患者さんがいました。';
+}
 export function diagnose(design: Design, result: Result, table = patientTable(design)): string[] {
     const m = metrics(design, result, table), issue = mainIssue(m), sentences: string[] = [];
     if (m.sCure >= .9) sentences.push('新薬が効く細菌は、しっかり減らすことができました。');
-    else if (!m.spread && design.bar >= 3) sentences.push('薬が効きにくい細菌は、この一年ではあまり広がりませんでした。耐性が生じにくい設計が役に立ったようです。');
-    else if (!m.spread && design.bar <= 2) sentences.push('この一年では、薬が効きにくい細菌はあまり広がりませんでした。');
+    else if (m.sCure >= .5 && !m.spread && design.bar >= 3) sentences.push('薬が効きにくい細菌は、この一年ではあまり広がりませんでした。耐性が生じにくい設計が役に立ったようです。');
+    else if (m.sCure >= .5 && !m.spread && design.bar <= 2) sentences.push('この一年では、薬が効きにくい細菌はあまり広がりませんでした。');
     else if (m.side <= 2 && design.gentle >= 3) sentences.push('体への負担が少なく、副作用で治療をやめた人はほとんどいませんでした。');
 
-    if (issue === 'resistance') sentences.push(m.spread
-        ? '新薬が効く細菌は減りましたが、薬が効きにくい細菌が生き残り、広がってしまいました。'
-        : '治療中に、薬が効きにくい細菌が生まれてしまった患者さんがいました。');
-    else if (issue === 'side') sentences.push('細菌を減らすことはできましたが、薬が体に合わず、治療を続けられなかった患者さんもいました。');
+    if (issue === 'resistance') {
+        if (m.spread) sentences.push(m.sCure >= .5
+            ? '新薬が効く細菌は減りましたが、薬が効きにくい細菌が生き残り、広がってしまいました。'
+            : '薬が効きにくい細菌が生き残り、広がってしまいました。');
+        else if (m.emerged >= 5) sentences.push('治療中に、薬が効きにくい細菌が生まれてしまった患者さんがいました。');
+        else if (m.resistant >= 5) sentences.push('薬が効きにくい細菌に感染し、治療が難しくなった患者さんがいました。');
+        else sentences.push('薬が効きにくい細菌が、患者さんの回復をさまたげてしまいました。');
+    }
+    else if (issue === 'side') sentences.push(m.sCure >= .5
+        ? '細菌を減らすことはできましたが、薬が体に合わず、治療を続けられなかった患者さんもいました。'
+        : '薬が体に合わず、治療を続けられなかった患者さんがいました。');
     else if (issue === 'ill') {
         const {gainDur, gainPot} = limitingFactor(design, table);
-        sentences.push(gainDur > gainPot
-            ? '薬は細菌に作用しましたが、効果が長続きせず、細菌を抑えきれなかった患者さんがいました。'
-            : '薬の殺菌力が足りず、新薬が効く細菌が残ってしまった患者さんがいました。');
+        const proposal = Math.abs(gainDur-gainPot) < .05 ? undefined : selectRecommendation(design,result.seed).candidate;
+        const preferred = proposal && (['pot','dur'] as const).find(key=>proposal[key]>design[key]);
+        sentences.push(illSentence(gainDur,gainPot,preferred));
     }
     // When there is no main issue, retain the high-priority clearance sentence
     // and add the observed no-spread context requested by the review's case two.
@@ -112,7 +127,13 @@ export type Recommendation = {
     secondaryCandidate?: Design;
     gain: number;
 };
-export function recommendationReason(key: Key, current: Evaluation, next: Evaluation): string {
+export function recommendationReason(key: Key, current: Evaluation, next: Evaluation, observed: Metrics): string {
+    const forward = {
+        pot:'殺菌力を高めると、細菌をより確実に減らせる見込みです。',
+        bar:'耐性が生じにくい薬にすると、薬が効きにくい細菌が生まれにくく、広がりにくくなり、治療の効果を保ちやすくなる見込みです。',
+        dur:'効果が続く時間をのばすと、細菌をより長く抑えられる見込みです。',
+        gentle:'安全性を高めると、副作用で治療をやめる人が減り、より多くの患者さんが回復できる見込みです。',
+    };
     const decreases = {
         ill:current.counts.ill-next.counts.ill,
         emerged:current.counts.emerged-next.counts.emerged,
@@ -123,18 +144,27 @@ export function recommendationReason(key: Key, current: Evaluation, next: Evalua
     const resistance = current.counts.emerged+current.counts.resistant-next.counts.emerged-next.counts.resistant;
     const resistanceMost = resistance > 0 && resistance >= Math.max(decreases.ill,decreases.side);
     if (key === 'pot' && decreases.ill > 0 && decreases.ill >= Math.max(resistance,decreases.side))
-        return '新薬が効く細菌がまだ残っていました。殺菌力を高めると、さらに細菌を減らせる可能性があります。';
+        return observed.ill >= 5 ? '新薬が効く細菌がまだ残っていました。殺菌力を高めると、さらに細菌を減らせる可能性があります。' : forward.pot;
     if (key === 'pot' && resistanceMost)
         return '殺菌力を高めると、治療中に薬が効きにくい細菌が増える前に細菌を減らしやすくなり、結果がよくなる見込みです。';
     if (key === 'bar' && resistance > 0)
-        return '薬が効きにくい細菌が生まれたり広がったりしたことが、今回の課題でした。耐性が生じにくい薬にすると、そうした細菌が生まれにくく、広がりにくくなり、治療の効果を保ちやすくなる見込みです。';
+        return observed.emerged+observed.resistant >= 5 ? '薬が効きにくい細菌が生まれたり広がったりしたことが、今回の課題でした。耐性が生じにくい薬にすると、そうした細菌が生まれにくく、広がりにくくなり、治療の効果を保ちやすくなる見込みです。' : forward.bar;
     if (key === 'dur' && decreases[largest] > 0 && (largest === 'ill' || largest === 'emerged'))
-        return '薬の効果が途中で弱まり、細菌を抑えきれませんでした。効果を長続きさせることが改善につながりそうです。';
+        return observed.ill >= 5 ? '薬の効果が途中で弱まり、細菌を抑えきれませんでした。効果を長続きさせることが改善につながりそうです。' : forward.dur;
     if (key === 'gentle' && largest === 'side' && decreases.side > 0)
-        return '細菌を減らす効果はありましたが、体への負担が回復のさまたげになりました。安全性を高めることで、より多くの患者さんが回復できる可能性があります。';
+        return observed.side >= 5 ? '細菌を減らす効果はありましたが、体への負担が回復のさまたげになりました。安全性を高めることで、より多くの患者さんが回復できる可能性があります。' : forward.gentle;
     return labels[key]+'を高めると、今回より多くの患者さんが回復できる見込みです。';
 }
-export async function recommend(design: Design, seed: number): Promise<Recommendation> {
+const recommendations = new Map<string,Recommendation>();
+function selectRecommendation(design: Design, seed: number): Recommendation {
+    const cacheKey = [seed >>> 0,...keys.map(key=>design[key])].join(':');
+    const cached = recommendations.get(cacheKey);
+    if (cached) return cached;
+    const selected = chooseRecommendation(design,seed);
+    recommendations.set(cacheKey,selected);
+    return selected;
+}
+function chooseRecommendation(design: Design, seed: number): Recommendation {
     const current = evaluate(design, seed);
     const options = candidates(design).map(candidate=>({...candidate, evaluation:evaluate(candidate.design,seed)}));
     options.sort((a,b)=>b.evaluation.meanRecovered-a.evaluation.meanRecovered
@@ -144,7 +174,8 @@ export async function recommend(design: Design, seed: number): Promise<Recommend
     if (best && gain >= 1) {
         const {design:next,increase,decrease} = best;
         const coin = decrease ? '研究コインが足りないので、かわりに'+labels[decrease]+'を一段階下げてみましょう。' : 'まだ使っていない研究コインで強化できます。';
-        return {parameter:labels[increase],candidate:next,gain,sentences:[recommendationReason(increase,current,best.evaluation),coin]};
+        const table = patientTable(design), observed = metrics(design,yearOutcome(design,seed,table),table);
+        return {parameter:labels[increase],candidate:next,gain,sentences:[recommendationReason(increase,current,best.evaluation,observed),coin]};
     }
     const sentences = ['どの性能を一段階変えても、回復する人数ははっきりとは増えませんでした。'];
     const spreadOption = options.find(option=>current.spreadProbability-option.evaluation.spreadProbability>=.1);
@@ -156,13 +187,18 @@ export async function recommend(design: Design, seed: number): Promise<Recommend
     if (secondary?.decrease) sentences[sentences.length-1] += '研究コインが足りないので、かわりに'+labels[secondary.decrease]+'を一段階下げてみましょう。';
     return {sentences,gain,secondaryCandidate:secondary?.design};
 }
+export async function recommend(design: Design, seed: number): Promise<Recommendation> {
+    return selectRecommendation(design,seed);
+}
 
 export async function calculateAdvice(design: Design, seed: number) {
     const start = performance.now(), table = patientTable(design), result = yearOutcome(design,seed,table);
-    const diagnosis = diagnose(design,result,table), recommendStart = performance.now();
+    const recommendStart = performance.now();
     const recommendation = await recommend(design,seed);
+    const recommendMs = performance.now()-recommendStart;
+    const diagnosis = diagnose(design,result,table);
     return {diagnosis,recommendation,metrics:metrics(design,result,table),evaluation:evaluate(design,seed),
         limiting:mainIssue(metrics(design,result,table))==='ill'?limitingFactor(design,table):undefined,
-        recommendMs:performance.now()-recommendStart,elapsedMs:performance.now()-start};
+        recommendMs,elapsedMs:performance.now()-start};
 }
 export type Advice = Awaited<ReturnType<typeof calculateAdvice>>;

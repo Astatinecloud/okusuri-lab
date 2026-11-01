@@ -1,7 +1,7 @@
 import {describe,it,expect,vi} from 'vitest';
 import {renderToStaticMarkup} from 'react-dom/server';
 import {canAfford,cost,keys,patientTable,yearOutcome,Rng,type Design} from '../model';
-import {candidates,createEvaluator,diagnose,evaluate,evaluationSeeds,limitingFactor,mainIssue,metrics,recommend,recommendationReason,type Evaluation} from './advice';
+import {candidates,createEvaluator,diagnose,evaluate,evaluationSeeds,illSentence,limitingFactor,mainIssue,metrics,recommend,recommendationReason,type Evaluation,type Metrics} from './advice';
 import {ResultAdvice} from '../ui/components/ResultAdvice';
 
 const cases:Design[]=[
@@ -66,10 +66,16 @@ describe('model-driven advice',()=>{
         const {m,rec,diagnosis,result,table}=await checkAdvice(d);
         if(index===0){expect(mainIssue(m)).toBe('resistance');expect(rec.parameter).toBe('耐性の生じにくさ');expect(cost(d)).toBe(8);expect(cost(rec.candidate!)).toBe(9)}
         if(index===1){expect(m.spread).toBe(false);expect(diagnosis.join('')).toContain('設計が役に立ったようです')}
-        if(index===2){const factors=limitingFactor(d,table);expect(mainIssue(m)).toBe('ill');expect(factors.gainDur).toBeGreaterThan(factors.gainPot);expect(diagnosis.join('')).toContain('効果が長続きせず')}
+        if(index===2){
+            const factors=limitingFactor(d,table);
+            expect(mainIssue(m)).toBe('ill');expect(m.well).toBe(3);expect(m.sCure).toBe(.03);
+            expect(Math.abs(factors.gainDur-factors.gainPot)).toBeLessThan(.05);
+            expect(diagnosis.join('')).toContain('殺菌力や効果が続く時間が足りず');
+            expect(diagnosis.join('')).not.toMatch(/あまり広が|設計が役に立った|効果が長続きせず/);
+        }
         if(index===3){expect(mainIssue(m)).toBe('side');expect(rec.parameter).toBe('安全性')}
         if(index===4){expect(result.recovered).toBeGreaterThanOrEqual(90);expect(diagnosis.join('')).toContain('多くの患者さんを助ける')}
-        if(index===5){expect(cost(d)).toBe(9);expect(rec.candidate).toBeDefined();expect(keys.some(k=>rec.candidate![k]===d[k]-1)).toBe(true);expect(rec.sentences.join('')).toContain('かわりに')}
+        if(index===5){expect(cost(d)).toBe(9);expect(rec.candidate).toBeDefined();expect(keys.some(k=>rec.candidate![k]===d[k]-1)).toBe(true);expect(rec.sentences.join('')).toContain('かわりに');expect(m.side).toBe(3);expect(rec.parameter).toBe('安全性');expect(rec.sentences[0]).toContain('安全性を高めると');expect(rec.sentences[0]).not.toContain('さまたげになりました')}
         if(index===6){expect(rec.candidate).toBeUndefined();expect(rec.sentences[0]).toContain('はっきりとは増えませんでした')}
     },180000);
     it('thirty random affordable designs: Japanese text, truthful gains and legal steps',async()=>{
@@ -86,12 +92,67 @@ describe('model-driven advice',()=>{
     it('reasons require the matching status decrease; otherwise use a hedged fallback',()=>{
         const current:Evaluation={meanRecovered:40,counts:{well:40,ill:30,emerged:10,resistant:10,side:10},spreadProbability:.5};
         const next:Evaluation={...current,counts:{...current.counts,ill:20}};
-        expect(recommendationReason('pot',current,next)).toContain('まだ残っていました');
-        expect(recommendationReason('dur',current,next)).toContain('長続き');
-        expect(recommendationReason('bar',current,next)).not.toContain('生まれたり広がったりしたこと');
-        expect(recommendationReason('gentle',current,next)).not.toContain('体への負担');
-        expect(recommendationReason('bar',current,{...current,counts:{...current.counts,resistant:5}})).not.toMatch(/直接|たおす/);
+        const observed:Metrics={...current.counts,sCure:1,spread:true};
+        expect(recommendationReason('pot',current,next,observed)).toContain('まだ残っていました');
+        expect(recommendationReason('dur',current,next,observed)).toContain('長続き');
+        expect(recommendationReason('bar',current,next,observed)).not.toContain('生まれたり広がったりしたこと');
+        expect(recommendationReason('gentle',current,next,observed)).not.toContain('体への負担');
+        expect(recommendationReason('bar',current,{...current,counts:{...current.counts,resistant:5}},observed)).not.toMatch(/直接|たおす/);
     });
+    it('past claims require five observed patients, not just a mean status decrease',()=>{
+        const current:Evaluation={meanRecovered:0,counts:{well:0,ill:25,emerged:25,resistant:25,side:25},spreadProbability:.5};
+        for(const key of keys){
+            const status=key==='gentle'?'side':key==='bar'?'resistant':'ill';
+            const next={...current,counts:{...current.counts,[status]:0}};
+            const observed:Metrics={well:96,ill:0,emerged:0,resistant:0,side:0,sCure:1,spread:false,[status]:4};
+            expect(recommendationReason(key,current,next,observed)).not.toMatch(/残っていました|今回の課題でした|さまたげになりました|抑えきれませんでした/);
+            expect(recommendationReason(key,current,next,{...observed,[status]:5})).toMatch(/残っていました|今回の課題でした|さまたげになりました|抑えきれませんでした/);
+        }
+    });
+    it('near ties are neutral; otherwise prefer the recommended potency or duration',()=>{
+        for(const preferred of [undefined,'pot','dur'] as const)expect(illSentence(.97,.96,preferred)).toContain('殺菌力や効果が続く時間');
+        expect(illSentence(.8,.1,'pot')).toContain('殺菌力が足りず');
+        expect(illSentence(.1,.8,'dur')).toContain('効果が長続きせず');
+        expect(illSentence(.8,.1)).toContain('効果が長続きせず');
+        expect(illSentence(.1,.8)).toContain('殺菌力が足りず');
+    });
+    it('no-spread success requires sufficient host cure, even without barrier attribution',()=>{
+        const base=yearOutcome(cases[0],1),table=patientTable(cases[0]);
+        const noSpread={...base,community:{...base.community,months:base.community.months.map(month=>({...month,frac:0}))}};
+        for(const bar of [1,3])for(const cured of [49,50]){
+            const d={...cases[0],bar},t={...table,cureS:table.cureS.map((_,i)=>i<cured)};
+            const text=diagnose(d,noSpread,t).join('');
+            expect(text.includes('あまり広がりませんでした')).toBe(cured>=50);
+            expect(text.includes('設計が役に立った')).toBe(cured>=50&&bar>=3);
+        }
+    });
+    it('all 435 designs at seed one: every past problem and no-spread success matches observations',async()=>{
+        let checked=0;
+        for(let pot=1;pot<=5;pot++)for(let bar=1;bar<=5;bar++)for(let dur=1;dur<=5;dur++)for(let gentle=1;gentle<=5;gentle++){
+            const d={pot,bar,dur,gentle};if(!canAfford(d))continue;
+            const table=patientTable(d),result=yearOutcome(d,1,table),m=metrics(d,result,table);
+            const rec=await recommend(d,1),diagnosis=diagnose(d,result,table);
+            const text=[...diagnosis,...rec.sentences].join('');
+            const context=JSON.stringify(d);
+            if(/あまり広が/.test(text)){expect(m.sCure,context).toBeGreaterThanOrEqual(.5);expect(m.spread,context).toBe(false)}
+            if(text.includes('設計が役に立った'))expect(bar,context).toBeGreaterThanOrEqual(3);
+            if(/残っていました|残ってしまった患者|抑えきれませんでした|抑えきれなかった患者/.test(text))expect(m.ill,context).toBeGreaterThanOrEqual(5);
+            if(/さまたげになりました|治療を続けられなかった患者/.test(text))expect(m.side,context).toBeGreaterThanOrEqual(5);
+            if(/今回の課題でした|生き残り、広がってしまいました|回復をさまたげてしまいました/.test(text))expect(m.emerged+m.resistant,context).toBeGreaterThanOrEqual(5);
+            if(text.includes('治療中に、薬が効きにくい細菌が生まれてしまった'))expect(m.emerged,context).toBeGreaterThanOrEqual(5);
+            if(text.includes('感染し、治療が難しくなった'))expect(m.resistant,context).toBeGreaterThanOrEqual(5);
+            if(mainIssue(m)==='ill'){
+                const gains=limitingFactor(d,table);
+                if(Math.abs(gains.gainDur-gains.gainPot)<.05)expect(diagnosis.join(''),context).toContain('殺菌力や効果が続く時間');
+                else if(rec.candidate){
+                    if(rec.candidate.pot>pot)expect(diagnosis.join(''),context).toContain('殺菌力が足りず');
+                    if(rec.candidate.dur>dur)expect(diagnosis.join(''),context).toContain('効果が長続きせず');
+                }
+            }
+            checkJapanese(diagnosis);checkJapanese(rec);checked++;
+        }
+        expect(checked).toBe(435);
+    },900000);
     it('no automatic barrier attribution at low barrier; unlucky and lucky notes follow the comparison',()=>{
         const d=cases[0],table=patientTable(d),base=yearOutcome(d,1,table),average=evaluate(d,1).meanRecovered;
         const noSpread={...base,community:{...base.community,months:base.community.months.map(m=>({...m,frac:0}))}};
