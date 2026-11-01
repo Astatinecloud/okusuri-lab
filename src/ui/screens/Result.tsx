@@ -1,11 +1,14 @@
 import { useEffect, useMemo, useState } from 'react';
-import { cost, keys, yearOutcome, type Design, type Result as ModelResult, type PatientStatus } from '../../model';
+import { cost, keys, yearOutcome, params3, type Design, type Result as ModelResult, type PatientStatus } from '../../model';
 import { labels, titleScience, titleScienceNote, chanceNote } from '../../config/game';
 import { rank } from '../../game/result';
 import { investmentStatistics, type InvestmentRow } from '../../game/investment';
 import { initial, type Screen } from '../../game/types';
 import { YearChart } from '../components/YearChart';
 import { PatientIcon, patientLabels } from '../components/PatientIcon';
+import { requestAdvice } from '../../game/adviceClient';
+import type { Advice } from '../../game/advice';
+import { ResultAdvice } from '../components/ResultAdvice';
 type Props = {
     r: ModelResult;
     name: string;
@@ -28,6 +31,7 @@ export function StatisticsProgress({completed}: {completed: number}) {
 export function Result({ r, name, design, save, setScreen, setDesign }: Props) {
     const [stats, setStats] = useState<InvestmentRow[] | null>(null), [error, setError] = useState('');
     const [completed, setCompleted] = useState(0);
+    const [advice,setAdvice] = useState<Advice|null>(null),[adviceError,setAdviceError]=useState(false);
     const comparison = useMemo(() => yearOutcome({ ...design, bar: 1 }, r.seed), [design, r.seed]);
     useEffect(() => {
         let active = true;
@@ -37,12 +41,20 @@ export function Result({ r, name, design, save, setScreen, setDesign }: Props) {
             .catch(() => { if (active) setError('統計を計算できませんでした。結果画面を開き直してください。'); });
         return () => { active = false; };
     }, [design]);
+    useEffect(()=>{
+        let active=true;
+        setAdvice(null);setAdviceError(false);
+        requestAdvice(design,r.seed).then(value=>{if(active)setAdvice(value)}).catch(()=>{if(active)setAdviceError(true)});
+        return ()=>{active=false};
+    },[design,r.seed]);
     const months = r.community.months, first = months[0], last = months[11], currentStats = stats?.[design.bar - 1];
     function replay(reset: boolean) { if (reset)
         setDesign(initial); history.replaceState(null, '', location.pathname + location.search); setScreen(reset ? 'title' : 'develop'); }
     return <>
  <ResearcherRank recovered={r.recovered}/>
- <div className="heading"><small>RESEARCH REPORT · 1年間 / 12か月</small><h1>「{name}」の評価</h1></div>
+ <div className="heading"><small>診断結果</small><h1>「{name}」の評価</h1><p className="recovered-total"><strong>{r.recovered}</strong> / 100人が回復</p><p>{last.frac>=params3.spreadThreshold?'この1年で、薬が効きにくい細菌が広がりました。':'この1年で、薬が効きにくい細菌はあまり広がりませんでした。'}</p></div>
+ <ResultAdvice advice={advice} error={adviceError}/>
+ <h2 className="details-heading">くわしい結果</h2>
  <section className="card"><h2>① 1年間の細菌の変化</h2><YearChart months={months}/>
  <p>1か月目の地域の月平均感染者数は、新薬が効く菌が{first.YS.toFixed(1)}人、耐性菌が{first.YR.toFixed(1)}人でした。12か月目はそれぞれ{last.YS.toFixed(1)}人、{last.YR.toFixed(1)}人で、耐性菌の割合は{percent(last.frac)}でした。</p><p>地域で治療中に耐性が成立した件数は、1年間で{r.community.emergences}件です。下の100人は、この地域の各月の割合に応じた感染を治療した結果です。</p></section>
  <section className="card"><h2>② 100人の患者の回復人数</h2><p className="recovered-total"><strong>{r.recovered}</strong> / 100人が回復</p>

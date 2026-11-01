@@ -63,7 +63,10 @@ describe('v3 experience', () => {
         for (const [heading, text] of titleScience) expect(scienceSection).toContain('<h3>'+heading+'</h3><p>'+text+'</p>');
         expect(scienceSection).toContain('<p class="tiny">'+titleScienceNote+'</p>');
         for (const term of [...bannedModelText,'用語集']) expect(scienceSection).not.toContain(term);
-        expect(result.indexOf('研究者ランク')).toBeLessThan(result.indexOf('RESEARCH REPORT'));
+        const sections=['研究者ランク','診断結果','今回のお薬はどうだった？','次に改良するなら？','くわしい結果','① 1年間の細菌の変化','② 100人の患者の回復人数','③ 耐性対策への研究投資の効果'];
+        sections.slice(1).forEach((heading,i)=>expect(result.indexOf(sections[i])).toBeLessThan(result.indexOf(heading)));
+        expect(result).toContain(' / 100人が回復');
+        expect(result).toContain('考え中…');
         expect((result.match(/class="patient-icon /g) || [])).toHaveLength(105);
         for (const label of Object.values(labels))
             expect(result).toContain(label);

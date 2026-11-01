@@ -878,6 +878,8 @@ button[aria-pressed=true]:hover,.primary:hover {
 .bar-track { background: #eee8f2; height: 24px; border-radius: 6px; overflow: hidden; }
 .bar-track > div { height: 100%; background: #b291cc; }
 .fraction-chart { max-height: 200px; }
+.recommendation-name { font-size: clamp(1.5rem, 4vw, 2rem); color: #39745e; overflow-wrap: anywhere; }
+.details-heading { text-align: center; margin-top: 2rem; }
 .title-science-dialog { overflow-y: auto; overflow-wrap: anywhere; }
 .title-science-dialog .dialog-content { min-width: 0; }
 @media(max-width: 400px) {
