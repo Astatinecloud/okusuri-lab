@@ -8,7 +8,7 @@ export function BacteriaCard({ resistant, start, end }: { resistant: boolean; st
         <section className="card">
             <h2><Germ res={resistant} />{resistant ? '薬剤耐性菌' : '薬剤感受性菌'} <Info term={resistant ? '薬剤耐性' : '薬剤感受性菌'} /></h2>
             <p>{formatNumber(start)} → <strong>{formatNumber(end)}</strong></p>
-            <h3>{change.fold}</h3>
+            <h3 className={end > start ? 'warning' : undefined}>{change.fold}</h3>
             {resistant && <p className="remain">{residualMessage(start, end)}</p>}
         </section>
     );

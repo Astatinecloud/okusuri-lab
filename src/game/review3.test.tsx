@@ -132,3 +132,13 @@ describe('review 3 five-percent change band', () => {
         expect(formatChange(100, ratio * 100)).not.toBe('ほぼ変化なし');
     });
 });
+
+import { formatPercent as formatPercentFinal } from './presentation';
+describe('formatPercent never implies elimination', () => {
+    it('keeps sub-100 reductions below 100%', () => {
+        expect(formatPercentFinal(99.9646)).toBe('99.96%');
+        expect(formatPercentFinal(99.99999)).toBe('99.99%超');
+        expect(formatPercentFinal(100)).toBe('100%');
+        expect(formatPercentFinal(42.04)).toBe('42.0%');
+    });
+});

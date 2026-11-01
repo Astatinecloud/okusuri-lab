@@ -16,7 +16,7 @@ describe('result text', () => {
         expect(formatNumber(1e8)).toBe('約1億個');
         expect(formatNumber(12500)).toBe('約1.25万個');
         expect(formatNumber(35.2)).toBe('約35個');
-        expect(populationChange(10000, 1)).toEqual({ fold: '100% 減少', detail: '減少割合 100%' });
+        expect(populationChange(10000, 1)).toEqual({ fold: '99.99% 減少', detail: '減少割合 99.99%' });
         expect(populationChange(100, 200)).toEqual({ fold: '約2倍に増加', detail: '増加' });
         expect(populationChange(100, 100).detail).toBe('変化なし');
     });

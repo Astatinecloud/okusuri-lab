@@ -19,9 +19,14 @@ export function formatScalar(value: number): string {
     return value.toLocaleString('ja', { maximumSignificantDigits: 3 });
 }
 
+/** Never rounds a value below 100 up to "100%" (that would read as complete elimination). */
 export function formatPercent(value: number): string {
-    const rounded = value.toFixed(1);
-    return Number(rounded) === 100 ? '100%' : rounded + '%';
+    if (value >= 100) return '100%';
+    if (value >= 99) {
+        const fine = value.toFixed(2);
+        return fine === '100.00' ? '99.99%超' : fine + '%';
+    }
+    return value.toFixed(1) + '%';
 }
 
 export function formatChange(before: number, after: number): string {

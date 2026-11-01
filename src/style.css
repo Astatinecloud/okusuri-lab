@@ -315,7 +315,8 @@ progress {
     border-left:4px solid #2563EB;
     background:#F6F8FA
 }
-.warning {
+.warning,
+.card h3.warning {
     color:#C2410C
 }
 .cost-bar {
