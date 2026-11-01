@@ -6,4 +6,3 @@ __pycache__/
 *.log
 __pycache__
 model-ref/*.log
-model-ref/sweep*.json
