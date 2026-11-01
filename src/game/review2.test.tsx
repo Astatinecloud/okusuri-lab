@@ -118,8 +118,8 @@ describe('review 2 causal rules', () => {
         evidence.afterDesign.dur = 2;
         evidence.after.seDrop += 7;
         const narrative = causalNarrative('dur', evidence);
-        expect(narrative).toContain('感受性菌で 20.0% → 40.0%');
-        expect(narrative).toContain('耐性菌で 0.0% → 10.0%');
+        expect(narrative).toContain('感受性菌の増殖を上回る時間は 20.0% → 40.0%');
+        expect(narrative).toContain('耐性菌の増殖を上回る時間は 0.0% → 10.0%');
         expect(narrative).toContain('+7人');
     });
 

@@ -593,3 +593,11 @@ dialog::backdrop {
 .analysis-note {
     color: #C2410C;
 }
+
+.next-step {
+    margin: 12px 0;
+    padding: 12px 16px;
+    border-left: 3px solid #0F9D76;
+    background: #F6F8FA;
+    font-size: 14px;
+}

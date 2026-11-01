@@ -131,3 +131,22 @@ Date: 2026-11-01 (Asia/Tokyo). Addressed all 14 items in docs/review-2.md. Chang
 - Added 25 review regression cases covering the requested count/fold formatting (including ratios 1e-7, 0.5, 0.99, 1, 1.5 and 7961), percentage-point differences, duplicate removal, internal transitions, causal-rule branches, real-model competitive release and interruption warnings, all-level-one behavior and upward references, accessible button names, and glossary/inline-help markup.
 - npm.cmd run build passes TypeScript and the Vite production build. git diff --check passes. No changes to src/model/, src/config/params.json, golden.json or model-ref/.
 - This pass uses unit/integration tests, server-rendered component markup and the existing mocked-canvas test. It does not claim a new browser/device playthrough or camera QR scan; the Playwright/device checks cited by Claude in review-2.md predate these fixes. No requested fix is intentionally deferred.
+
+
+## Review 3 fixes
+
+Date: 2026-11-01 (Asia/Tokyo). Addressed all items in docs/review-3.md. Changes remain uncommitted; no deployment was attempted.
+
+1. **Hypothetical tense:** all level-one +1 narratives now start with conditional wording (高めると / 延ばすと), use present/future descriptions, and include the actual before/after recovery counts. Related zero-change, extra-interruption and competitive-release notes use conditional/present wording for previews as well. Actual minus-one comparisons retain past tense.
+2. **Time-change verbs:** added a tested timeExplanation helper that selects increasing, decreasing or unchanged wording from the unrounded indicator difference. Unchanged saturated windows explicitly explain that the indicator has already reached 100%; unchanged zero windows say 0% のまま. Both potency and duration narratives use this helper.
+3. **No false strongest parameter:** strongest selection now requires a strictly positive recovery gain against the parameter's level-one baseline. When invested parameters have no positive gain, the summary says この設計では、どの性能もレベル1と比べて回復数を増やしていません。 The distinct all-level-one message remains. The shared summary also keeps exported-card wording consistent.
+4. **Next-step hint:** analysis now computes and caches every valid +1 design for parameters below level five, rather than only level-one previews. prepareAnalysis yields between those model runs. The new hint immediately below the strongest-parameter box names the greatest positive recovery gain, includes the actual recovery transition, and identifies over-budget suggestions and the need to lower another performance to fund them. Affordable suggestions explain that budget reallocation may involve lowering another performance. If no +1 design improves recovery, the hint states this. Ties follow the stable parameter order.
+5. **Population wording and change band:** resistant-population decreases now read 最終数が約…分の1になりました (or になります for a preview). formatChange uses an inclusive ±5% almost-unchanged band, with floating-point tolerance at its boundaries. Related negligible-change explanations use the same five-percent scale.
+6. **Regression coverage:** added 18 Review 3 tests for conditional preview narratives/notes, recovery transitions, completed-comparison reciprocal wording, sign-based and 0%/100% time-window wording, the nonpositive-gain summary for (1,5,1,4), upward-candidate cache reuse and bounds, budget labels, no-improvement cases, hint placement, and the ±5% band and just-outside boundaries. The required next-step example (5,1,2,2) is verified against the real model: 薬剤耐性菌への作用, **8 → 45 recovered (+37)**. Updated the prior duration-prose assertion to the clearer full time-window labels.
+
+Validation:
+
+- Full npm.cmd test: **99 tests passed in 7 files**, latest full run 50.48 seconds. Existing model/golden/scientific checks and the all-435-design analysis sweep pass.
+- npm.cmd run build: TypeScript checking and Vite production build pass.
+- git diff --check passes. No changes to src/model/, src/config/params.json, golden.json or model-ref/.
+- Verification includes pure-function/integration tests and server-rendered hint placement. No new browser/device playthrough or real-camera QR scan was performed in this pass; the Playwright checks cited in review-3.md predate these fixes. No requested item is intentionally deferred.

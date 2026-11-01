@@ -1,7 +1,7 @@
 import { canAfford, cost, keys, type Design } from '../../model';
 import { labels } from '../../config/game';
 import { type Analysis, type Key } from '../../game/analysis';
-import { analysisCaveat, causalNarrative, evidenceNotes, internalTransition, parameterEvidence, strongestSummary } from '../../game/analysisPresentation';
+import { analysisCaveat, causalNarrative, evidenceNotes, internalTransition, parameterEvidence, strongestSummary, nextStepHint } from '../../game/analysisPresentation';
 import { formatChange, formatNumber, formatPercent, formatScalar } from '../../game/presentation';
 import { Info } from './Info';
 import { parameterTerms } from './PerformanceSetting';
@@ -40,6 +40,7 @@ export function PerformanceAnalysis({ design, analysis }: { design: Design; anal
             <h2>③ 新薬の性能分析 <Info term="作用機序" /></h2>
             {!analysis ? <p role="status">比較設計を計算しています…</p> : <>
                 <p className="highlight">{strongestSummary(analysis)}</p>
+                <p className="next-step">{nextStepHint(analysis)}</p>
                 <p className="tiny">{analysisCaveat}</p>
                 {keys.map(key => <ParameterAnalysis key={key} design={design} attribute={key} analysis={analysis} />)}
                 <h3>研究開発費の内訳</h3>

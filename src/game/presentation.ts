@@ -27,7 +27,7 @@ export function formatPercent(value: number): string {
 export function formatChange(before: number, after: number): string {
     if (before === after) return 'ほぼ変化なし';
     const ratio = after / before;
-    if (Math.abs(ratio - 1) <= .020000000001) return 'ほぼ変化なし';
+    if (Math.abs(ratio - 1) <= .050000000001) return 'ほぼ変化なし';
     if (after === 0) return '0個まで減少';
     if (before === 0) return formatNumber(after) + 'に増加';
     if (ratio < 1) return '約' + formatMagnitude(1 / ratio) + '分の1';
