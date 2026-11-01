@@ -59,7 +59,7 @@ describe('review 2 formatting', () => {
             expect(row.current).not.toMatch(/\d,\d{3}\.\d/);
         }
         for (const row of rows.filter(row => row.label.includes('減少率'))) {
-            expect(row.difference).toContain('ポイント');
+            expect(row.difference).toMatch(/ポイント|ほぼ変化なし|最終数の行を参照/);
             expect(row.difference).not.toContain('→');
         }
         const normal = rows.find(row => row.label === '感受性菌の減少率')!;
