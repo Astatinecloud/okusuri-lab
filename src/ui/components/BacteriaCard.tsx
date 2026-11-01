@@ -5,7 +5,7 @@ export function BacteriaCard({ resistant, start, end }: { resistant: boolean; st
     const change = populationChange(start, end);
     return (
         <section className="card">
-            <h2><Germ res={resistant} />{resistant ? 'つよいばい菌' : 'ふつうのばい菌'}</h2>
+            <h2><Germ res={resistant} />{resistant ? '薬剤耐性菌' : '薬剤感受性菌'}</h2>
             <p>{formatNumber(start)} → <strong>{formatNumber(end)}</strong></p>
             <h3>{change.fold}</h3>
             <small>{change.detail}</small>

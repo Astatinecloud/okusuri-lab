@@ -1,41 +1,30 @@
-import { canAfford, keys, type Design } from '../../model';
-import { descriptions, labels } from '../../config/game';
-
-type Props = {
+import { canAfford, params, type Design, keys } from '../../model';
+import { descriptions, labels, benefits, drawbacks, impacts, subtitles } from '../../config/game';
+import { Info } from './Info';
+export function internalValue(key: typeof keys[number], level: number) { const i = level - 1; return key === 'pot' ? 'EC50 = ' + params.ec50S[i] + '（低いほど少ない濃度で効く）' : key === 'mech' ? '耐性による必要濃度の倍率 F = ' + params.resistFold[i] + ' 倍' : key === 'dur' ? '半減期 ' + params.halfLife[i] + ' 時間' : '副作用係数 ×' + params.seGentle[i]; }
+export function PerformanceSetting({ attribute, design, change }: {
     attribute: typeof keys[number];
-    icon: string;
     design: Design;
-    change: (key: typeof keys[number], level: number) => void;
-    setModal: (modal: string) => void;
-};
-
-export function PerformanceSetting({ attribute, icon, design, change, setModal }: Props) {
-    const level = design[attribute];
-    return (
-        <section className={`card setting setting-${attribute}`}>
-            <h2>
-                <span>{icon}</span> {labels[attribute]}
-                {attribute === 'mech' && <button className="info" aria-label="新しいしくみのおはなし" onClick={() => setModal('mechanism')}>ⓘ</button>}
-            </h2>
-            <p>{descriptions[attribute]}</p>
-            <div className="levels">
-                <button aria-label={`${labels[attribute]}を下げる`} disabled={level === 1} onClick={() => change(attribute, level - 1)}>−</button>
-                {[1, 2, 3, 4, 5].map(value => {
-                    const locked = !canAfford({ ...design, [attribute]: value });
-                    return (
-                        <button
-                            key={value}
-                            aria-label={`${labels[attribute]} レベル${value}${locked ? ' コインがたりない' : ''}`}
-                            aria-pressed={level === value}
-                            className={`${value <= level ? 'selected' : ''} ${locked ? 'locked' : ''}`}
-                            onClick={() => change(attribute, value)}
-                        >
-                            {locked ? <><span>{value}</span><small>🔒</small></> : value}
-                        </button>
-                    );
-                })}
-                <button aria-label={`${labels[attribute]}を上げる`} disabled={level === 5} onClick={() => change(attribute, level + 1)}>＋</button>
-            </div>
-        </section>
-    );
-}
+    change: (k: typeof keys[number], l: number) => void;
+    icon?: string;
+    setModal?: (s: string) => void;
+}) { const level = design[attribute]; return <section className="card setting">
+        <h2>
+        {labels[attribute]}</h2><small>{subtitles[attribute]}</small>
+        <strong>レベル {level} / 5 · {(level - 1) * 10} pt</strong>
+        <p>
+        {descriptions[attribute]}</p>
+        <div className="levels">
+        {[1, 2, 3, 4, 5].map(v => { const locked = !canAfford({ ...design, [attribute]: v }); return <button key={v} disabled={locked} title={locked ? '研究開発費が不足しています。他の性能を下げると選べます。' : (v - 1) * 10 + ' pt'} aria-pressed={level === v} onClick={() => change(attribute, v)}>
+        {v}{locked && <small> 🔒</small>}</button>; })}</div>
+        <small>選択できない段階は研究開発費が不足しています。</small>
+        <details>
+        <summary>詳しく</summary>
+        <p>メリット：{benefits[attribute]}</p>
+        <p>デメリット：{drawbacks[attribute]}</p>
+        <div>
+        {impacts[attribute].map(v => <span className="tag" key={v}>
+        {v}</span>)}</div>
+        <p className="tiny">
+        {internalValue(attribute, level)}</p>
+        <Info term={attribute === 'pot' ? 'EC50' : attribute === 'dur' ? '半減期' : '作用機序'}/></details></section>; }

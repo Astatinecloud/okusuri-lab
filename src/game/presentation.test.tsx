@@ -16,16 +16,16 @@ describe('result text', () => {
         expect(formatNumber(1e8)).toBe('約1億個');
         expect(formatNumber(12500)).toBe('約1.25万個');
         expect(formatNumber(35.2)).toBe('約35個');
-        expect(populationChange(10000, 1)).toEqual({ fold: '約10,000分の1にへった！', detail: '減少割合 99.99%' });
-        expect(populationChange(100, 200)).toEqual({ fold: '約2倍にふえちゃった…', detail: 'ふえた' });
-        expect(populationChange(100, 100).detail).toBe('かわらない');
+        expect(populationChange(10000, 1)).toEqual({ fold: '99.99% 減少', detail: '減少割合 99.99%' });
+        expect(populationChange(100, 200)).toEqual({ fold: '約2倍に増加', detail: '増加' });
+        expect(populationChange(100, 100).detail).toBe('変化なし');
     });
 
     it('chooses the three residual messages at the 99% reduction boundary', () => {
-        expect(residualMessage(100, 101)).toContain('ふえちゃった');
-        expect(residualMessage(100, 1.01)).toContain('まだたくさん');
-        expect(residualMessage(100, 1)).toContain('まだ少し');
-        expect(residualMessage(100, .5)).toContain('まだ少し');
+        expect(residualMessage(100, 101)).toContain('増加');
+        expect(residualMessage(100, 1.01)).toContain('耐性菌が残存');
+        expect(residualMessage(100, 1)).toContain('少数');
+        expect(residualMessage(100, .5)).toContain('少数');
     });
 
     it('places the matching residual text inside only the resistant card', () => {
@@ -41,8 +41,8 @@ describe('result text', () => {
     it('retains comment priorities and savings badge conditions', () => {
         const design = { pot: 5, mech: 1, dur: 2, gentle: 2 };
         const result = runDesign(design);
-        expect(comments(design, result)[0]).toContain('新しいしくみを研究');
-        expect(comments(design, result).at(-1)).toContain('どんな工夫');
+        expect(comments(design, result)[0]).toContain('回復した患者');
+        expect(comments(design, result).at(-1)).toContain('性能分析');
         expect(badge({ pot: 1, mech: 1, dur: 1, gentle: 1 }, { ...result, recovered: 80 })).toBe(true);
         expect(badge({ pot: 5, mech: 5, dur: 2, gentle: 1 }, { ...result, recovered: 80 })).toBe(false);
     });
@@ -89,29 +89,21 @@ describe('simulation presentation', () => {
         const low = { pot: 3, mech: 2, dur: 3, gentle: 3 };
         const high = { ...low, mech: 3 };
         for (const hour of [0, 24, 48]) {
-            expect(simulationNarration(low, hour)[1]).toContain('はね返され');
-            expect(simulationNarration(high, hour)[1]).toContain('くぐりぬけた');
+            expect(simulationNarration(low, hour)[1]).toContain('耐性菌');
+            expect(simulationNarration(high, hour)[1]).toContain('耐性菌');
             expect(barrierEffect(low, hour).kind).toBe('bounce');
             expect(barrierEffect(high, hour).kind).toBe('pass');
         }
-        expect(simulationNarration(low, 0)[0]).toContain('はたらきはじめた');
-        expect(simulationNarration(high, 48)[0]).toContain('もうすぐけっか');
+        expect(simulationNarration(low, 0)[0]).toContain('感受性菌');
+        expect(simulationNarration(high, 48)[0]).toContain('感受性菌');
         expect(barrierEffect(high, 0).duration).toBeLessThan(barrierEffect(high, 11).duration);
     });
 
-    it('renders SVG people with distinct faces, a bandage, and matching legend icons', () => {
-        const well = renderToStaticMarkup(<PatientIcon status="well" />);
-        const ill = renderToStaticMarkup(<PatientIcon status="ill" />);
-        const side = renderToStaticMarkup(<PatientIcon status="side" />);
-        for (const icon of [well, ill, side]) {
-            expect(icon).toContain('<circle');
-            expect(icon).toContain('aria-hidden="true"');
-            expect(icon).not.toMatch(/[⊕•☺]/);
-        }
-        expect(well).toContain('M15 22q5 6 10 0');
-        expect(ill).toContain('M16 23h8');
-        expect(side).toContain('<rect');
-        expect(renderToStaticMarkup(<PatientLegend />).match(/<svg/g)).toHaveLength(3);
+    it('renders small outcome squares with distinct symbols and matching legend', () => {
+        const icons = (['well','ill','side'] as const).map(status => renderToStaticMarkup(<PatientIcon status={status}/>));
+        for (const icon of icons) { expect(icon).toContain('aria-hidden="true"'); expect(icon).not.toContain('<svg'); }
+        expect(icons[0]).toContain('＋'); expect(icons[1]).toContain('・'); expect(icons[2]).toContain('×');
+        expect(renderToStaticMarkup(<PatientLegend/>).match(/patient-icon/g)).toHaveLength(3);
     });
 });
 

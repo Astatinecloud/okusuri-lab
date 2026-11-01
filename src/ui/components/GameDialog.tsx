@@ -1,5 +1,6 @@
 import { useEffect, useRef } from 'react';
 import { adult, science } from '../../config/game';
+import { Glossary } from './Info';
 import { trimName } from '../../share';
 
 type Props = {
@@ -26,33 +27,33 @@ export function GameDialog({ modal, setModal, name, setName, newName, finish }: 
                 <button className="close" aria-label="とじる" onClick={() => setModal('')}>×</button>
                 {modal === 'name' ? (
                     <>
-                        <h2>薬の名前をつけよう！</h2>
-                        <label>きみの薬の名前<input autoFocus value={name} onChange={event => setName(trimName(event.target.value))} /></label>
-                        <small>10文字まで。じぶんの名前は入れないでね。</small>
-                        <button onClick={newName}>ほかの名前 ↻</button>
-                        <button className="primary" onClick={finish}>この薬でためす！</button>
+                        <h2>新薬に名前を付ける</h2>
+                        <label>新薬の名前<input autoFocus value={name} onChange={event => setName(trimName(event.target.value))} /></label>
+                        <small>16文字まで。個人名は入力しないでください。</small>
+                        <button onClick={newName}>別の名前</button>
+                        <button className="primary" onClick={finish}>シミュレーションを開始</button>
                     </>
                 ) : modal === 'how' ? (
                     <>
-                        <h2>あそびかた</h2>
-                        <p>① 9まいのコインで、4つの性能をえらぼう。</p>
-                        <p>② 薬の名前をつけて、3日間ためしてみよう。</p>
-                        <p>③ 100人のけっかを見て、工夫を見つけよう！</p>
-                        <p>性能を下げるとコインがもどるよ。何度でもつくってみてね。</p>
+                        <h2>遊び方</h2>
+                        <p>① 90 pt以内で4つの性能を設計します。</p>
+                        <p>② 新薬の名前を付けて、72時間のシミュレーションを実行します。</p>
+                        <p>③ 100人の結果と性能分析を確認し、次の設計を考えます。</p>
+                        <p>性能を下げると研究開発費に余裕ができます。何度でも再設計できます。</p>
                     </>
                 ) : modal === 'mechanism' ? (
                     <>
-                        <h2>🔑 新しいしくみ</h2>
-                        <p>つよいばい菌は、薬をこわしたり外に出したりして、薬からみをまもっているよ。新しいしくみの薬は、そのまもりをくぐりぬけられるんだ。</p>
+                        <h2>新しい作用機序</h2>
+                        <p>耐性菌は薬の分解や排出、標的の変化などにより作用を受けにくくなります。新しい作用機序で耐性機構を回避します。</p>
                     </>
                 ) : (
                     <>
-                        <h2>ばい菌と薬のおはなし</h2>
+                        <h2>このゲームの科学的背景</h2>
                         {science.map(([title, text]) => (
                             <article className="science-card" key={title}><h3>{title}</h3><p>{text}</p></article>
                         ))}
-                        <h3>おうちの方へ</h3>
-                        <p className="tiny">{adult}</p>
+                        <h3>モデルについて</h3>
+                        <p className="tiny">{adult}</p><Glossary/>
                     </>
                 )}
                 <button className="wide" onClick={() => setModal('')}>とじる</button>

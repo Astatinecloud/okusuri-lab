@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
-import { canAfford, keys, runDesign, type Design, type Result as ModelResult } from './model';
+import { canAfford, keys, type Design, type Result as ModelResult } from './model';
+import { cachedRun } from './game/analysis';
 import { initial, type Screen } from './game/types';
 import { decode, encode, trimName } from './share';
 import { resultImage } from './share/card';
@@ -15,8 +16,8 @@ const shared = decode(location.hash);
 export function App() {
     const [screen, setScreen] = useState<Screen>(shared ? 'result' : 'title');
     const [design, setDesign] = useState<Design>(shared?.design || initial);
-    const [name, setName] = useState(shared?.name || 'ピカピカ・キラリン');
-    const [result, setResult] = useState<ModelResult | null>(() => shared ? runDesign(shared.design) : null);
+    const [name, setName] = useState(shared?.name || 'AMR-1111');
+    const [result, setResult] = useState<ModelResult | null>(() => shared ? cachedRun(shared.design) : null);
     const [modal, setModal] = useState('');
     const [notice, setNotice] = useState('');
     const [hour, setHour] = useState(0);
@@ -35,7 +36,7 @@ export function App() {
             if (!value) return;
             setDesign(value.design);
             setName(value.name);
-            setResult(runDesign(value.design));
+            setResult(cachedRun(value.design));
             setScreen('result');
         }
         window.addEventListener('hashchange', onHash);
@@ -46,7 +47,7 @@ export function App() {
         if (screen !== 'sim') return;
         const start = performance.now();
         const timer = window.setInterval(() => {
-            const nextHour = Math.min(72, (performance.now() - start) / 14000 * 72);
+            const nextHour = Math.min(72, (performance.now() - start) / 8000 * 72);
             setHour(nextHour);
             if (nextHour >= 72) setScreen('result');
         }, 80);
@@ -61,7 +62,7 @@ export function App() {
         try {
             setImage(await resultImage(design, result, name, url));
         } catch {
-            setNotice('画像をつくれなかったよ。もう一度ためしてね。');
+            setNotice('画像を作成できませんでした。もう一度お試しください。');
         } finally {
             setBusy(false);
         }
@@ -71,7 +72,7 @@ export function App() {
         if (level < 1 || level > 5) return;
         const next = { ...design, [key]: level };
         if (!canAfford(next)) {
-            setNotice('コインがたりないよ！ ほかの性能を下げるとつかえるよ');
+            setNotice('研究開発費が不足しています。他の性能を下げてください。');
             setShake(true);
             setTimeout(() => setShake(false), 500);
             return;
@@ -81,17 +82,15 @@ export function App() {
     }
 
     function newName() {
-        const prefix = design.mech >= 3 ? 'まもりやぶり' : design.gentle >= 4 ? 'やさしい' : 'ピカピカ';
-        const suffix = ['キラリン', 'スッキリン', 'ゲンキン'][Math.floor(Math.random() * 3)];
-        setName(trimName(prefix + suffix));
+        setName(trimName(name.startsWith('AMR-') ? 'レジスタミン' : 'AMR-' + keys.map(k => design[k]).join('')));
     }
 
     function finish() {
-        if (!name.trim()) setName('キラリン');
+        if (!name.trim()) setName('AMR-' + keys.map(k => design[k]).join(''));
         setModal('');
         setBusy(true);
         setTimeout(() => {
-            setResult(runDesign(design));
+            setResult(cachedRun(design));
             setHour(0);
             setScreen('sim');
             setBusy(false);
@@ -101,8 +100,8 @@ export function App() {
     return (
         <>
             <header>
-                <button className="brand" onClick={() => setScreen('title')}>⚗ おくすり発明ラボ</button>
-                <span>ちいさな工夫で、大きな発明。</span>
+                <button className="brand" onClick={() => setScreen('title')}>おくすり発明ラボ</button>
+                <span>iGEM Waseda · AMR</span>
             </header>
             <main>
                 {screen === 'title' && <Title setScreen={setScreen} setModal={setModal} />}
@@ -116,11 +115,11 @@ export function App() {
                         <button aria-label="とじる" onClick={() => setNotice('')}>×</button>
                     </div>
                 )}
-                {busy && screen !== 'save' && <p role="status">けいさんしているよ…</p>}
+                {busy && screen !== 'save' && <p role="status">計算しています…</p>}
             </main>
             <footer>
                 おくすり発明ラボ <span>｜</span> 科学を学ぶためのゲーム<br />
-                <small>個人情報は集めません。教育用の簡単なモデルです。</small>
+                <small>個人情報は集めません。教育用の簡略化モデルです。</small>
             </footer>
             <GameDialog modal={modal} setModal={setModal} name={name} setName={setName} newName={newName} finish={finish} />
         </>

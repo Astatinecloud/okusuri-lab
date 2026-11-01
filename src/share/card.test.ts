@@ -33,9 +33,9 @@ it('draws a 1080×1350 card with rank stars, four five-step bars, and QR instruc
     expect(canvas.toDataURL).toHaveBeenCalledWith('image/png');
     const texts = context.fillText.mock.calls.map(call => call[0] as string);
     expect(texts).toContain('★'.repeat(rank(result.recovered).stars));
-    expect(texts).toContain('このカードのQRで けっかを見られるよ');
-    expect(texts).toContain('教育用の簡単なモデルです');
-    const commentLines = context.fillText.mock.calls.filter(call => Number(call[2]) >= 775 && Number(call[2]) < 1030);
+    expect(texts).toContain('QRから同じ設計の結果を確認できます');
+    expect(texts).toContain('教育用の簡略化モデルによる仮想的な結果です。');
+    const commentLines = context.fillText.mock.calls.filter(call => Number(call[2]) >= 865 && Number(call[2]) < 990);
     expect(commentLines.length).toBeGreaterThan(0);
     expect(commentLines.every(call => !/^[！、。？]/.test(String(call[0])))).toBe(true);
     for (let row = 0; row < 4; row++) {
