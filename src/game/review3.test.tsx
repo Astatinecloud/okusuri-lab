@@ -142,3 +142,12 @@ describe('formatPercent never implies elimination', () => {
         expect(formatPercentFinal(42.04)).toBe('42.0%');
     });
 });
+
+import { reductionDifference } from './analysisPresentation';
+describe('reduction-rate difference', () => {
+    it('is readable for tiny, normal and increasing cases', () => {
+        expect(reductionDifference(1e8, 4.1e4, 4.0e4)).toBe('ほぼ変化なし');
+        expect(reductionDifference(1e5, 5e4, 1e3)).toBe('+49.00 ポイント');
+        expect(reductionDifference(1e5, 8e8, 54)).toBe('最終数の行を参照');
+    });
+});

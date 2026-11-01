@@ -178,7 +178,7 @@ export function comparisonRows(design: Design, analysis: Analysis, comparison: C
         label,
         comparison: populationChange(start, before).fold,
         current: populationChange(start, after).fold,
-        difference: signed((before - after) / start * 100) + ' ポイント',
+        difference: reductionDifference(start, before, after),
     });
     const time = (label: string, before: number, after: number): ComparisonRow => ({
         label, comparison: formatPercent(before), current: formatPercent(after),
@@ -196,4 +196,12 @@ export function comparisonRows(design: Design, analysis: Analysis, comparison: C
         time('増殖を上回る時間・耐性菌', comparison.indicators.timeAboveR, analysis.indicators.timeAboveR),
         counts('研究開発費（pt）', cost(comparison.design) * 10, cost(design) * 10),
     ];
+}
+
+/** Difference of two reduction rates in percentage points; increases are compared via final counts instead. */
+export function reductionDifference(start: number, before: number, after: number): string {
+    if (before > start || after > start) return '最終数の行を参照';
+    const points = (before - after) / start * 100;
+    if (Math.abs(points) < 0.005) return 'ほぼ変化なし';
+    return (points > 0 ? '+' : '−') + Math.abs(points).toFixed(2) + ' ポイント';
 }
