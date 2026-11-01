@@ -1,6 +1,6 @@
 # v2 改修のまとめ（高校生〜文系大学生向け）
 
-公開URL（v1 から変更なし）: https://tomoalemon-cloud.github.io/okusuri-lab/
+公開URL（v1 から変更なし）: https://astatinecloud.github.io/okusuri-lab/
 
 関連文書: パラメータと計算式の対応表・科学的な仮定と制約・モデル検証 → `v2-parameter-model-map.md` ／ 実装指示 → `v2-redesign-brief.md` ／ レビュー記録 → `review-2.md`, `review-3.md` ／ Codex の実装報告 → `codex-report.md`
 
