@@ -1,21 +1,12 @@
-import { canAfford, params, params3, type Design, keys } from '../../model';
+import { canAfford, type Design, keys } from '../../model';
 import { descriptions, labels, benefits, drawbacks, impacts, subtitles } from '../../config/game';
 import { Info, type Term } from './Info';
 export const parameterTerms: Record<typeof keys[number], Term> = {
     pot: '新薬が効く菌',
     bar: '作用機序',
-    dur: '半減期',
+    dur: '効果が続く時間',
     gentle: '副作用',
 };
-export function internalValue(key: typeof keys[number], level: number): string {
-    const index = level - 1;
-    switch (key) {
-        case 'pot': return 'EC50 = ' + params.ec50S[index] + '（低いほど少ない濃度で効く）';
-        case 'bar': return '出現頻度 f = ' + params3.freq[index].toExponential(2) + ' / 増殖コスト c = ' + params3.cost[index] + ' / μ = f × c';
-        case 'dur': return '半減期 ' + params.halfLife[index] + ' 時間';
-        case 'gentle': return '副作用係数 ×' + params.seGentle[index];
-    }
-}
 type Props = {
     attribute: typeof keys[number];
     design: Design;
@@ -48,7 +39,6 @@ export function PerformanceSetting({ attribute, design, change }: Props) {
                 <p>メリット：{benefits[attribute]}</p>
                 <p>デメリット：{drawbacks[attribute]}</p>
                 <div>{impacts[attribute].map(value => <span className="tag" key={value}>{value}</span>)}</div>
-                <p className="tiny">{internalValue(attribute, level)} <Info term={attribute === 'pot' ? 'EC50' : parameterTerms[attribute]}/></p>
             </details>
         </section>);
 }

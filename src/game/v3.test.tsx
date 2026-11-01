@@ -2,7 +2,7 @@ import { readFileSync, readdirSync } from 'node:fs';
 import { describe, it, expect, vi } from 'vitest';
 import { renderToStaticMarkup as render } from 'react-dom/server';
 import ts from 'typescript';
-import { labels, ranks, chanceNote, science, titleScience, titleScienceNote, adult } from '../config/game';
+import { labels, ranks, chanceNote, titleScience, titleScienceNote, adult } from '../config/game';
 import { initial } from './types';
 import { rank } from './result';
 import { encode, decode } from '../share';
@@ -19,6 +19,7 @@ import { GameDialog } from '../ui/components/GameDialog';
 import { yearOutcome } from '../model';
 const noop = () => { };
 const source = (path: string) => readFileSync(new URL('../' + path, import.meta.url), 'utf8');
+const bannedModelText = ['μ', 'f×c', 'f × c', 'EC50', 'G(t)', 'Hill', 'ロジスティック', 'βR', 'gR', 'gS', 'crowd', 'Ki', 'tau-leaping', 'RK4', 'Emax', 'Poisson', 'SIS', 'Δt', 'S0', 'pEmerge', '副作用係数', '半減期'];
 describe('v3 experience', () => {
     it('rank names and thresholds unchanged', () => {
         expect(ranks).toEqual([{ min: 95, stars: 5, name: '創薬プロジェクトリーダー' }, { min: 80, stars: 4, name: '主任研究員' }, { min: 60, stars: 3, name: '研究員' }, { min: 30, stars: 2, name: '研究補助員' }, { min: 0, stars: 1, name: '研修生' }]);
@@ -56,11 +57,12 @@ describe('v3 experience', () => {
     it('year result, five outcomes, solid charts and data-based narration', () => {
         const r = yearOutcome(initial, 42);
         const result = render(<Result r={r} name="test" design={initial} save={noop} setScreen={noop} setDesign={noop} setModal={noop}/>);
-        expect(result).toContain('<summary>科学的な解説</summary>');
-        for (const [heading, text] of science) {
-            expect(result).toContain('<h3>'+heading+'</h3>');
-            expect(result).toContain(text);
-        }
+        const scienceSection = result.match(/<details><summary>科学的な解説<\/summary>([\s\S]*?)<\/details>/)![1];
+        expect((scienceSection.match(/class="science-card"/g)||[])).toHaveLength(3);
+        expect([...scienceSection.matchAll(/<h3>(.*?)<\/h3>/g)].map(match=>match[1])).toEqual(titleScience.map(([title])=>title));
+        for (const [heading, text] of titleScience) expect(scienceSection).toContain('<h3>'+heading+'</h3><p>'+text+'</p>');
+        expect(scienceSection).toContain('<p class="tiny">'+titleScienceNote+'</p>');
+        for (const term of [...bannedModelText,'用語集']) expect(scienceSection).not.toContain(term);
         expect(result.indexOf('研究者ランク')).toBeLessThan(result.indexOf('RESEARCH REPORT'));
         expect((result.match(/class="patient-icon /g) || [])).toHaveLength(105);
         for (const label of Object.values(labels))
@@ -163,5 +165,26 @@ describe('v3 experience', () => {
         expect(css).toMatch(/\.title-science-dialog\s*\{[^}]*overflow-y:\s*auto[^}]*overflow-wrap:\s*anywhere/);
         expect(css).toContain('width:calc(100% - 32px)');
         expect(css).toContain('max-height:85dvh');
+    });
+    it('all UI text, tooltips, glossary and saved-card strings omit model formulas',()=>{
+        function files(dir:string):string[] {
+            return readdirSync(new URL('../'+dir,import.meta.url),{withFileTypes:true})
+                .flatMap(file=>file.isDirectory()?files(dir+'/'+file.name):/\.(ts|tsx)$/.test(file.name)&&!file.name.includes('.test.')?[dir+'/'+file.name]:[]);
+        }
+        const paths=[...files('ui'),...files('share'),'config/game.ts','App.tsx'];
+        const matches:string[]=[];
+        for(const path of paths){
+            const ast=ts.createSourceFile(path,source(path),ts.ScriptTarget.Latest,true,path.endsWith('.tsx')?ts.ScriptKind.TSX:ts.ScriptKind.TS);
+            function visit(node:ts.Node){
+                if(ts.isStringLiteral(node)||ts.isNoSubstitutionTemplateLiteral(node)||ts.isJsxText(node)||ts.isTemplateHead(node)||ts.isTemplateMiddle(node)||ts.isTemplateTail(node)) {
+                    for(const token of bannedModelText) if(node.text.includes(token))matches.push(path+': '+token);
+                }
+                ts.forEachChild(node,visit);
+            }
+            visit(ast);
+        }
+        expect(matches).toEqual([]);
+        expect(source('config/game.ts')).not.toMatch(/export const science\s*=/);
+        expect(source('ui/components/PerformanceSetting.tsx')).not.toContain('internalValue');
     });
 });

@@ -1,12 +1,11 @@
 import { useEffect, useMemo, useState } from 'react';
 import { cost, keys, yearOutcome, type Design, type Result as ModelResult, type PatientStatus } from '../../model';
-import { labels, science, chanceNote } from '../../config/game';
+import { labels, titleScience, titleScienceNote, chanceNote } from '../../config/game';
 import { rank } from '../../game/result';
 import { investmentStatistics, type InvestmentRow } from '../../game/investment';
 import { initial, type Screen } from '../../game/types';
 import { YearChart } from '../components/YearChart';
 import { PatientIcon, patientLabels } from '../components/PatientIcon';
-import { Glossary } from '../components/Info';
 type Props = {
     r: ModelResult;
     name: string;
@@ -54,7 +53,7 @@ export function Result({ r, name, design, save, setScreen, setDesign }: Props) {
  <p>200シード（0〜199）での統計。「広がった」は12か月目の耐性菌割合が10%以上になった場合です。1回の結果と統計は異なることがあります。</p>
  {stats && currentStats ? <><div className="table-scroll"><table><caption>200シードの統計</caption><thead><tr><th>設計</th><th>広がった確率</th><th>平均回復人数</th></tr></thead><tbody>{[currentStats, stats[0]].map((v, i) => <tr key={i}><th>{i ? 'レベル1' : '現在（レベル' + design.bar + '）'}</th><td>{percent(v.spread)}</td><td>{v.meanRecovered.toFixed(1)}人</td></tr>)}</tbody></table></div><div className="investment-bars" role="img" aria-label="耐性の生じにくさレベル1〜5の広がった確率">{stats.map(s => <div key={s.level}><span>レベル{s.level}</span><div className="bar-track"><div style={{ width: percent(s.spread) }}/></div><strong>{percent(s.spread)}</strong></div>)}</div></> : error ? <p role="alert">{error}</p> : <StatisticsProgress completed={completed}/>}</section>
  <section className="card"><p className="coin-summary">研究コインの使用枚数：{cost(design)} / 9枚</p>{keys.map(k => <p key={k}>{labels[k]}：レベル{design[k]}</p>)}</section>
- <section className="card"><details><summary>科学的な解説</summary>{science.map(([title, text]) => <article className="science-card" key={title}><h3>{title}</h3><p>{text}</p></article>)}<Glossary /></details></section>
+ <section className="card"><details><summary>科学的な解説</summary>{titleScience.map(([title, text]) => <article className="science-card" key={title}><h3>{title}</h3><p>{text}</p></article>)}<p className="tiny">{titleScienceNote}</p></details></section>
  <div className="actions"><button className="primary" onClick={save}>結果を保存・共有</button><button onClick={() => replay(false)}>もう一度つくる（設定を保持）</button><button onClick={() => replay(true)}>最初から</button></div>
  </>;
 }
