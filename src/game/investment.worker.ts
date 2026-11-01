@@ -1,5 +1,7 @@
-import { statisticsForLevel } from './investment';
+import { calculateInvestment, type InvestmentMessage } from './investment';
 import type { Design } from '../model';
 self.onmessage = (event: MessageEvent<Design>) => {
-    self.postMessage([1, 2, 3, 4, 5].map(bar => statisticsForLevel({ ...event.data, bar })));
+    const send = (message: InvestmentMessage) => self.postMessage(message);
+    const result = calculateInvestment(event.data, completed => send({ type: 'progress', completed }));
+    send({ type: 'complete', ...result });
 };

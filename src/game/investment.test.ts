@@ -15,15 +15,25 @@ it('runs asynchronously in a worker and memoizes identical background designs', 
     }
     vi.stubGlobal('Worker', FakeWorker);
     try {
-        const d = { pot: 5, bar: 2, dur: 5, gentle: 5 }, first = investmentStatistics(d);
+        const progress = vi.fn(), laterProgress = vi.fn();
+        const d = { pot: 5, bar: 2, dur: 5, gentle: 5 }, first = investmentStatistics(d, progress);
+        expect(progress).toHaveBeenLastCalledWith(0);
         expect(workers).toHaveLength(1);
         expect(workers[0].postMessage).toHaveBeenCalledWith(d);
-        expect(investmentStatistics({ ...d, bar: 4 })).toBe(first);
+        workers[0].onmessage!({ data: {type: 'progress', completed: 2} });
+        expect(progress).toHaveBeenLastCalledWith(2);
+        expect(workers[0].terminate).not.toHaveBeenCalled();
+        expect(investmentStatistics({ ...d, bar: 4 }, laterProgress)).toBe(first);
+        expect(laterProgress).toHaveBeenLastCalledWith(2);
         const rows = [1, 2, 3, 4, 5].map(level => ({ level, spread: .1, meanRecovered: 80 }));
-        workers[0].onmessage!({ data: rows });
+        workers[0].onmessage!({ data: {type: 'complete', rows, elapsedMs: 1234} });
         expect(await first).toEqual(rows);
         expect(workers[0].terminate).toHaveBeenCalledOnce();
-        expect(investmentStatistics(d)).toBe(first);
+        expect(progress).toHaveBeenLastCalledWith(5);
+        expect(laterProgress).toHaveBeenLastCalledWith(5);
+        const cachedProgress=vi.fn();
+        expect(investmentStatistics(d,cachedProgress)).toBe(first);
+        expect(cachedProgress).toHaveBeenCalledExactlyOnceWith(5);
         expect(workers).toHaveLength(1);
     }
     finally {

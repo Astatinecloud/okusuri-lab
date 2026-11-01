@@ -1,17 +1,18 @@
 import { readFileSync, readdirSync } from 'node:fs';
 import { describe, it, expect, vi } from 'vitest';
 import { renderToStaticMarkup as render } from 'react-dom/server';
-import { labels, ranks } from '../config/game';
+import ts from 'typescript';
+import { labels, ranks, chanceNote } from '../config/game';
 import { initial } from './types';
 import { rank } from './result';
 import { encode, decode } from '../share';
 import { makeQR, resultImage } from '../share/card';
-import { ResearcherRank, Result } from '../ui/screens/Result';
+import { ResearcherRank, Result, StatisticsProgress } from '../ui/screens/Result';
 import { Title } from '../ui/screens/Title';
-import { Story } from '../ui/screens/Story';
+import { Story, story } from '../ui/screens/Story';
 import { Simulation } from '../ui/screens/Simulation';
 import { Lab } from '../ui/screens/Lab';
-import { YearChart, monthNarration } from '../ui/components/YearChart';
+import { YearChart, monthNarration, niceAxis } from '../ui/components/YearChart';
 import { Body } from '../ui/components/Body';
 import { ResearchCoinBudget } from '../ui/components/Coin';
 import { yearOutcome } from '../model';
@@ -41,6 +42,10 @@ describe('v3 experience', () => {
     it('intro, coins and consistent research labels', () => {
         expect(render(<Title setScreen={noop} setModal={noop}/>)).toContain('新薬を開発して、1年間で100人の患者を救おう');
         expect(render(<Story setScreen={noop}/>)).toContain('新薬の開発をはじめる');
+        const brief=readFileSync(new URL('../../docs/review-v3-1.md',import.meta.url),'utf8');
+        const exactStory=brief.split('2. **Story text')[1].split('3. **Statistics')[0].split('\n').slice(1).map(line=>line.trim()).filter(Boolean);
+        expect(story).toEqual(exactStory);
+        expect((render(<Story setScreen={noop}/>).match(/<p>/g)||[])).toHaveLength(9);
         const lab = render(<Lab design={initial} busy={false} shake={false} change={noop} newName={noop} setModal={noop}/>);
         for (const text of Object.values(labels))
             expect(lab).toContain(text);
@@ -56,6 +61,7 @@ describe('v3 experience', () => {
             expect(result).toContain(label);
         expect(result).toContain('もう一度つくる（設定を保持）');
         expect(result).toContain('結果を保存・共有');
+        expect(result.split(chanceNote)).toHaveLength(3);
         expect(render(<Simulation r={r} design={initial} elapsedMonths={0} setScreen={noop}/>)).toContain('1か月目 / 12か月');
         expect(render(<Simulation r={r} design={initial} elapsedMonths={12} setScreen={noop}/>)).toContain('12か月目 / 12か月');
         const chart = render(<YearChart months={r.community.months}/>);
@@ -77,6 +83,14 @@ describe('v3 experience', () => {
         const all = scan('ui') + source('config/game.ts');
         for (const term of ['薬剤感受性菌', '殺菌力重視', 'パラメータ比較', '新薬の性能分析', '比較を重ねて表示'])
             expect(all).not.toContain(term);
+        const literals:string[]=[];
+        const ast=ts.createSourceFile('ui.tsx',all+source('App.tsx')+source('share/card.ts'),ts.ScriptTarget.Latest,true,ts.ScriptKind.TSX);
+        function visit(node:ts.Node){
+            if(ts.isStringLiteral(node)||ts.isNoSubstitutionTemplateLiteral(node)||ts.isJsxText(node))literals.push(node.text);
+            ts.forEachChild(node,visit);
+        }
+        visit(ast);
+        for(const term of ['薬剤感受性菌','感受性菌','pt']) expect(literals.filter(text=>text.includes(term))).toEqual([]);
         expect(source('App.tsx')).toContain('crypto.getRandomValues');
         expect(source('game/investment.ts')).toContain('new Worker');
         expect(source('game/investment.ts')).toContain('cache.set');
@@ -97,7 +111,7 @@ describe('v3 experience', () => {
             const title = calls.find(c => c.text === rank(r.recovered).name)!;
             expect(title.font).toContain('700 64px');
             expect(title.align).toBe('center');
-            expect(calls.filter(c => !c.text.startsWith('★')).every(c => parseInt(c.font.split(' ')[1]) <= 64)).toBe(true);
+            expect(calls.filter(c => c!==title&&!c.text.startsWith('★')).every(c => parseInt(c.font.split(' ')[1]) < 64)).toBe(true);
             expect(calls.some(c => c.text.includes('12か月目の耐性菌割合'))).toBe(true);
             for (const label of Object.values(labels))
                 expect(calls.some(c => c.text.includes(label))).toBe(true);
@@ -106,5 +120,21 @@ describe('v3 experience', () => {
         finally {
             vi.unstubAllGlobals();
         }
+    });
+    it('round chart ticks preserve actual monthly means',()=>{
+        expect(niceAxis(91)).toEqual({max:100,ticks:[0,25,50,75,100]});
+        expect(niceAxis(68)).toEqual({max:80,ticks:[0,20,40,60,80]});
+        expect(niceAxis(0).ticks).toEqual([0,2.5,5,7.5,10]);
+        const months=Array.from({length:12},(_,i)=>({month:i+1,YS:i===0?90.75:60.125,YR:23.625,frac:.2,emergences:0}));
+        const before=JSON.stringify(months),html=render(<YearChart months={months}/>);
+        const point=html.match(/<circle[^>]*cx="55"[^>]*cy="([^"]+)"/)!;
+        expect(Number(point[1])).toBeCloseTo(55.2625,10); // actual mean, no rounding
+        expect(JSON.stringify(months)).toBe(before);
+    });
+    it('progress text and phone table constraints',()=>{
+        for(const count of [0,1,2,3,4,5])expect(render(<StatisticsProgress completed={count}/>)).toContain(count+'/5 レベル計算済み');
+        const css=source('style.css');
+        expect(css).toMatch(/\.table-scroll table\s*\{[^}]*min-width:\s*0[^}]*table-layout:\s*fixed/);
+        expect(css).toMatch(/\.table-scroll caption\s*\{[^}]*white-space:\s*normal[^}]*overflow-wrap:\s*anywhere/);
     });
 });

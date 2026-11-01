@@ -128,19 +128,23 @@ export type Month = {
     frac: number;
     emergences: number;
 };
-/** One-day stochastic tau leaps. RNG draw order is part of the shared-seed contract. */
+/** Configured sub-day tau leaps; sample whole-day endpoints exactly as model3.py. */
 export function community(d: Design, tab: PatientTable, seed: number) {
     const cp = v3.community, mean = (a: number[]) => a.reduce((s, v) => s + v, 0) / a.length;
     const qE = mean(tab.pEmerge), eS = mean(tab.cureS.map((v, i) => v && tab.okSE[i] ? 1 - tab.pEmerge[i] : 0)), eR = mean(tab.cureR.map((v, i) => +(v && tab.okSE[i]))), rng = new Rng(seed);
     let YS = cp.Y0, YR = 0, emergences = 0;
     const daily: number[][] = [];
-    for (let i = 0; i < cp.days; i++) {
-        const X = Math.max(0, cp.N - YS - YR), newS = rng.poisson(cp.beta * X * YS / cp.N + cp.importRate), newR = rng.poisson(cp.beta * (1 - v3.cost[d.bar - 1]) * X * YR / cp.N), pT = 1 - Math.exp(-cp.tau), pG = 1 - Math.exp(-cp.gamma);
+    const dt = cp.dt, steps = Math.round(cp.days / dt);
+    const pT = 1 - Math.exp(-cp.tau * dt), pG = 1 - Math.exp(-cp.gamma * dt);
+    for (let i = 0; i < steps; i++) {
+        const X = Math.max(0, cp.N - YS - YR), newS = rng.poisson((cp.beta * X * YS / cp.N + cp.importRate) * dt), newR = rng.poisson(cp.beta * (1 - v3.cost[d.bar - 1]) * X * YR / cp.N * dt);
         const treatS = rng.binomial(YS, pT), emerg = rng.binomial(treatS, qE), curedS = rng.binomial(treatS - emerg, eS / Math.max(1e-12, 1 - qE)), natS = rng.binomial(YS - treatS, pG), treatR = rng.binomial(YR, pT), curedR = rng.binomial(treatR, eR), natR = rng.binomial(YR - treatR, pG);
         YS = Math.max(0, YS + newS - emerg - curedS - natS);
         YR = Math.max(0, YR + newR + emerg - curedR - natR);
         emergences += emerg;
-        daily.push([YS, YR, emerg]);
+        // The reference records the endpoint sub-step's emergences, rather than
+        // summing the day's sub-steps. Keep this convention for golden parity.
+        if (((i + 1) * dt) % 1 < 1e-9) daily.push([YS, YR, emerg]);
     }
     const months: Month[] = Array.from({ length: 12 }, (_, m) => { const seg = daily.slice(Math.floor(m * cp.days / 12), Math.floor((m + 1) * cp.days / 12)), YS = mean(seg.map(x => x[0])), YR = mean(seg.map(x => x[1])); return { month: m + 1, YS, YR, frac: YS + YR > 0 ? YR / (YS + YR) : 0, emergences: seg.reduce((s, x) => s + x[2], 0) }; });
     return { months, eS, eR, qE, emergences, daily };
