@@ -1,8 +1,7 @@
-import { calculateInvestment, type InvestmentMessage } from './investment';
 import type { Design } from '../model';
 import { calculateAdvice } from './advice';
-self.onmessage = async (event: MessageEvent<Design | {type:'advice';design:Design;seed:number}>) => {
-    if ('type' in event.data) {
+self.onmessage = async (event: MessageEvent<{type:'advice';design:Design;seed:number}>) => {
+    if (event.data.type === 'advice') {
         try {
             const advice = await calculateAdvice(event.data.design,event.data.seed);
             self.postMessage({type:'advice-complete',advice});
@@ -11,7 +10,4 @@ self.onmessage = async (event: MessageEvent<Design | {type:'advice';design:Desig
         }
         return;
     }
-    const send = (message: InvestmentMessage) => self.postMessage(message);
-    const result = calculateInvestment(event.data, completed => send({ type: 'progress', completed }));
-    send({ type: 'complete', ...result });
 };

@@ -7,7 +7,7 @@ import { initial } from './types';
 import { rank } from './result';
 import { encode, decode } from '../share';
 import { makeQR, resultImage } from '../share/card';
-import { ResearcherRank, Result, StatisticsProgress } from '../ui/screens/Result';
+import { ResearcherRank, Result } from '../ui/screens/Result';
 import { Title } from '../ui/screens/Title';
 import { Story, story } from '../ui/screens/Story';
 import { Simulation } from '../ui/screens/Simulation';
@@ -57,12 +57,9 @@ describe('v3 experience', () => {
     it('year result, five outcomes, solid charts and data-based narration', () => {
         const r = yearOutcome(initial, 42);
         const result = render(<Result r={r} name="test" design={initial} save={noop} setScreen={noop} setDesign={noop} setModal={noop}/>);
-        const scienceSection = result.match(/<details><summary>科学的な解説<\/summary>([\s\S]*?)<\/details>/)![1];
-        expect((scienceSection.match(/class="science-card"/g)||[])).toHaveLength(3);
-        expect([...scienceSection.matchAll(/<h3>(.*?)<\/h3>/g)].map(match=>match[1])).toEqual(titleScience.map(([title])=>title));
-        for (const [heading, text] of titleScience) expect(scienceSection).toContain('<h3>'+heading+'</h3><p>'+text+'</p>');
-        expect(scienceSection).toContain('<p class="tiny">'+titleScienceNote+'</p>');
-        for (const term of [...bannedModelText,'用語集']) expect(scienceSection).not.toContain(term);
+        for(const removed of ['200シード','広がった確率','平均回復人数','科学的な解説','レベル計算済み','science-card','investment-bars'])expect(result).not.toContain(removed);
+        for(const [heading] of titleScience)expect(result).not.toContain(heading);
+        expect(result).not.toContain(titleScienceNote);
         const sections=['研究者ランク','診断結果','今回のお薬はどうだった？','次に改良するなら？','くわしい結果','① 1年間の細菌の変化','② 100人の患者の回復人数','③ 耐性対策への研究投資の効果'];
         sections.slice(1).forEach((heading,i)=>expect(result.indexOf(sections[i])).toBeLessThan(result.indexOf(heading)));
         expect(result).toContain(' / 100人が回復');
@@ -103,8 +100,11 @@ describe('v3 experience', () => {
         visit(ast);
         for(const term of ['薬剤感受性菌','感受性菌','pt']) expect(literals.filter(text=>text.includes(term))).toEqual([]);
         expect(source('App.tsx')).toContain('crypto.getRandomValues');
-        expect(source('game/investment.ts')).toContain('new Worker');
-        expect(source('game/investment.ts')).toContain('cache.set');
+        expect(source('game/adviceClient.ts')).toContain('new Worker');
+        expect(source('game/adviceClient.ts')).toContain('cache.set');
+        expect(source('ui/screens/Result.tsx')).not.toContain('investmentStatistics');
+        expect(source('game/investment.worker.ts')).not.toContain('calculateInvestment');
+        expect(source('game/investment.worker.ts')).toContain('calculateAdvice');
     });
     it('canvas card keeps QR and uses the largest centered rank', async () => {
         const calls: {
@@ -142,11 +142,20 @@ describe('v3 experience', () => {
         expect(Number(point[1])).toBeCloseTo(55.2625,10); // actual mean, no rounding
         expect(JSON.stringify(months)).toBe(before);
     });
-    it('progress text and phone table constraints',()=>{
-        for(const count of [0,1,2,3,4,5])expect(render(<StatisticsProgress completed={count}/>)).toContain(count+'/5 レベル計算済み');
+    it('same-seed phone table constraints',()=>{
         const css=source('style.css');
         expect(css).toMatch(/\.table-scroll table\s*\{[^}]*min-width:\s*0[^}]*table-layout:\s*fixed/);
         expect(css).toMatch(/\.table-scroll caption\s*\{[^}]*white-space:\s*normal[^}]*overflow-wrap:\s*anywhere/);
+    });
+    it('keeps the same-seed barrier comparison and the revised chance note',()=>{
+        const design={pot:2,bar:4,dur:2,gentle:4},r=yearOutcome(design,1),baseline=yearOutcome({...design,bar:1},1);
+        const html=render(<Result r={r} name="test" design={design} save={noop} setScreen={noop} setDesign={noop} setModal={noop}/>);
+        const table=html.match(/<table>[\s\S]*?<\/table>/)![0];
+        expect(table).toContain('同じシード（1）での結果');
+        expect(table).toContain('<th>現在（レベル4）</th><td>'+r.recovered+'人</td><td>'+(r.community.months[11].frac*100).toFixed(1)+'%</td>');
+        expect(table).toContain('<th>レベル1</th><td>'+baseline.recovered+'人</td><td>'+(baseline.community.months[11].frac*100).toFixed(1)+'%</td>');
+        expect((html.match(/<table>/g)||[])).toHaveLength(1);
+        expect(chanceNote).toBe('耐性菌が生まれるタイミングは偶然に左右されるため、同じ設計でも結果が変わることがあります。');
     });
     it('title science dialog has exactly three verbatim cards and the small note',()=>{
         const expected = [
