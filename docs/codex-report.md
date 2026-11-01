@@ -93,3 +93,41 @@ Remaining verification and interpretation:
 - Browser/device visual QA, real-camera QR scanning, actual canvas font/layout rendering, mobile long-press/file sharing and low-end-phone timing were not performed in this pass. Canvas verification uses a mocked drawing context and the actual QR generator; chart and symbol verification includes server-rendered markup. Google Fonts requires network access, with sans-serif fallback.
 - At a level-one boundary the initial downward comparison has no valid design; the screen explains this and offers other parameters or the upward direction. No invented level-zero result is displayed. Time-above-growth percentages intentionally exclude the terminal instant at 72 h, which has zero duration.
 - No requested feature is intentionally deferred. Performance and scientific outputs are deterministic educational-model results, not clinical predictions.
+
+
+## Review 2 fixes
+
+Date: 2026-11-01 (Asia/Tokyo). Addressed all 14 items in docs/review-2.md. Changes remain uncommitted; no deployment was attempted.
+
+### A. Number formatting (items 1–5)
+
+- Added shared three-significant-digit number formatting with Japanese large-number units. Population cells and analysis text now show approximate counts such as 約25.2万個, 約7.96億個 and 約54個, rather than raw decimals. Time-above percentages use one decimal; values rounding to 100 are displayed as 100% to avoid exceeding three significant digits. Side-effect indices use the same significant-digit limit.
+- Added the tested formatChange(before, after) helper: decreases use reciprocal fractions, increases use fold increases, and values within ±2% use ほぼ変化なし. Analysis and comparison population changes no longer display 0.000倍.
+- Reduction-rate and time-window differences are computed from unrounded results and displayed as signed percentage-point changes. The table no longer repeats A → B in its difference column for reduction-rate rows.
+- Removed the duplicate reduction-description line from bacteria result cards. Internal-value transitions use a single label and explanation, including EC50, F, half-life and safety coefficient.
+
+### B. Causal explanations (items 6–8)
+
+- Added pure presentation helpers and evidence objects in src/game/analysisPresentation.ts. Each parameter card starts with a rule-generated causal explanation, followed by actual values: mechanism changes describe required concentration and resistant-population change plus cost/interruption deltas; potency describes its time window and conditional resistant effects; duration describes both time windows and interruption changes; safety states unchanged bacterial counts and the interruption transition.
+- Retained zero-recovery-change explanations, extra-interruption warnings and the twofold susceptible-population competitive-release warning. Potency text claims negligible resistant impact only when the measured change is negligible; with a low mechanism level but a measurable resistant change, it explains the still-high required concentration instead of making a false no-effect claim.
+- Added the exact interaction/non-additivity caveat requested by the review. Strongest-parameter selection considers invested parameters; all-level-one analysis returns no winner and displays すべてレベル1のため比較対象がありません. The saved card uses the same summary.
+- Added cached, asynchronously prepared +1 examples at level one, keeping minus1 and baseline null there. All four cards now provide causal evidence. Upward examples that exceed 90 pt carry the explicit reference-design warning; the main design remains unchanged.
+
+### C. UI (items 9–13)
+
+- Every level button now has a parameter-and-level accessible name, with the requested research-budget warning when locked, while retaining aria-pressed and native disabled behavior.
+- Budget markup sits immediately below the introduction, with compact adjacent spacing, an opaque sticky top:0 bar and bottom border. A ResizeObserver measures its height and sets scroll margins for parameter sections, headings, level controls and disclosures, including when text wraps on narrow screens.
+- Replaced the glossary row with one 用語集 disclosure containing a definition list. Inline ⓘ buttons sit beside parameter terms and result headings/terms; they have accessible labels, expanded/described-by state, tap/keyboard activation, Escape dismissal and blur dismissal. Their notes fit narrow viewports.
+- Enabled comparison overlay by default. Chart legends have a minimum 12 px font and actual SVG samples showing current solid lines, resistant circle markers, and comparison long dashes or dots with outlined circle markers. Optional transient-state comparison lines also have their own legend sample.
+- Parameter subtitles are separate block paragraphs below the title and above the level/cost row.
+
+### D. Readability (item 14)
+
+- Rewrote dense functions in analysis, presentation, parameter controls, inline help, chart rendering, simulation/title/design screens, sharing and saved-card drawing as normal multi-line TypeScript with named helpers. Extracted PerformanceAnalysis and ParameterComparison components from Result. Expanded configuration properties and CSS declarations onto readable lines. No formatter dependency was added.
+
+### Verification
+
+- Full npm.cmd test passes **81 tests in 6 files**, including the original model/golden/scientific checks and all-435-design analysis sweep. Latest full run: 52.58 seconds.
+- Added 25 review regression cases covering the requested count/fold formatting (including ratios 1e-7, 0.5, 0.99, 1, 1.5 and 7961), percentage-point differences, duplicate removal, internal transitions, causal-rule branches, real-model competitive release and interruption warnings, all-level-one behavior and upward references, accessible button names, and glossary/inline-help markup.
+- npm.cmd run build passes TypeScript and the Vite production build. git diff --check passes. No changes to src/model/, src/config/params.json, golden.json or model-ref/.
+- This pass uses unit/integration tests, server-rendered component markup and the existing mocked-canvas test. It does not claim a new browser/device playthrough or camera QR scan; the Playwright/device checks cited by Claude in review-2.md predate these fixes. No requested fix is intentionally deferred.

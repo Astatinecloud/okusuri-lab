@@ -1,13 +1,20 @@
 import { canAfford, keys, type Design } from '../model';
-export const trimName = (s: string) => Array.from(s).slice(0, 16).join('');
-export function encode(d: Design, name: string) { return '#r=' + keys.map(k => d[k]).join('') + '&n=' + encodeURIComponent(trimName(name)); }
-export function decode(hash: string) { try {
-    const q = new URLSearchParams(hash.replace(/^#/, '')), r = q.get('r');
-    if (!r || !/^([1-5]){4}$/.test(r))
-        return null;
-    const d = Object.fromEntries(keys.map((k, i) => [k, Number(r[i])])) as Design;
-    return canAfford(d) ? { design: d, name: trimName(q.get('n') || 'AMR-1111') } : null;
+
+export const trimName = (name: string) => Array.from(name).slice(0, 16).join('');
+
+export function encode(design: Design, name: string): string {
+    return '#r=' + keys.map(key => design[key]).join('') + '&n=' + encodeURIComponent(trimName(name));
 }
-catch {
-    return null;
-} }
+
+export function decode(hash: string) {
+    try {
+        const query = new URLSearchParams(hash.replace(/^#/, ''));
+        const levels = query.get('r');
+        if (!levels || !/^([1-5]){4}$/.test(levels)) return null;
+        const design = Object.fromEntries(keys.map((key, index) => [key, Number(levels[index])])) as Design;
+        if (!canAfford(design)) return null;
+        return { design, name: trimName(query.get('n') || 'AMR-1111') };
+    } catch {
+        return null;
+    }
+}

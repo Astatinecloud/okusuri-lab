@@ -37,7 +37,11 @@ describe('v2 causal analysis', () => {
         }
         const minimal = analyzeDesign({ pot: 1, mech: 1, dur: 1, gentle: 1 });
         for (const k of keys)
-            expect(minimal.parameters[k]).toEqual({ minus1: null, baseline: null });
+            {
+                expect(minimal.parameters[k].minus1).toBeNull();
+                expect(minimal.parameters[k].baseline).toBeNull();
+                expect(minimal.parameters[k].plus1!.design[k]).toBe(2);
+            }
     });
     it('is deterministic, supports over-budget reference designs and follows the dt mechanism grid', () => {
         const other = comparisonDesign(design, 'mech', 1)!;

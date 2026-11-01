@@ -1,5 +1,18 @@
 export type PatientStatus = 'well' | 'ill' | 'side';
-export function PatientIcon({ status }: {
-    status: PatientStatus;
-}) { return <span aria-hidden="true" className={'patient-icon ' + status}>{status === 'well' ? '＋' : status === 'side' ? '×' : '・'}</span>; }
-export function PatientLegend() { return <div className="legend">{(['well', 'ill', 'side'] as const).map((s, i) => <span key={s}><PatientIcon status={s}/>{['回復', '感染が残存', '副作用で中断'][i]}</span>)}</div>; }
+const symbols = { well: '＋', ill: '・', side: '×' };
+const statusLabels = { well: '回復', ill: '感染が残存', side: '副作用で中断' };
+
+export function PatientIcon({ status }: { status: PatientStatus }) {
+    return <span aria-hidden="true" className={'patient-icon ' + status}>{symbols[status]}</span>;
+}
+
+export function PatientLegend() {
+    const statuses: PatientStatus[] = ['well', 'ill', 'side'];
+    return (
+        <div className="legend">
+            {statuses.map(status => (
+                <span key={status}><PatientIcon status={status} />{statusLabels[status]}</span>
+            ))}
+        </div>
+    );
+}

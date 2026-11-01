@@ -1,17 +1,66 @@
 import { killRates, params, type Design } from '../model';
-export function formatNumber(n: number): string {
-    const format = (value: number) => value.toLocaleString('ja', { maximumFractionDigits: 2 });
-    if (n >= 1e8)
-        return `約${format(n / 1e8)}億個`;
-    if (n >= 1e4)
-        return `約${format(n / 1e4)}万個`;
-    return `約${Math.round(n).toLocaleString('ja')}個`;
+
+/** Three significant digits, with Japanese large-number units. */
+export function formatMagnitude(value: number): string {
+    const rounded = Number(value.toPrecision(3));
+    const magnitude = Math.abs(rounded);
+    const format = (n: number) => n.toLocaleString('ja', { maximumSignificantDigits: 3 });
+    if (magnitude >= 1e8) return format(rounded / 1e8) + '億';
+    if (magnitude >= 1e4) return format(rounded / 1e4) + '万';
+    return format(rounded);
 }
-export function populationChange(start: number, end: number) { if (end < start)
-    return { fold: ((1 - end / start) * 100).toFixed(2) + '% 減少', detail: '減少割合 ' + ((1 - end / start) * 100).toFixed(2) + '%' }; if (end > start)
-    return { fold: '約' + (end / start).toLocaleString('ja', { maximumFractionDigits: 1 }) + '倍に増加', detail: '増加' }; return { fold: '変化なし', detail: '変化なし' }; }
-export function residualMessage(start: number, end: number): string { return end > start ? '耐性菌が増加しています。耐性菌への作用を確認してください。' : end / start <= .01 ? '少数の耐性菌が残存しています。一時的耐性状態と観察期間が関係します。' : '耐性菌が残存しています。作用機序と持続時間を確認してください。'; }
-export function simulationNarration(d: Design, hour: number): string[] { const k = killRates(hour, d); return [k.kS > params.gS ? '薬の作用が感受性菌の増殖を上回っています。' : '感受性菌の増殖を薬の作用だけでは上回れていません。', k.kR > params.gR ? '薬の作用が耐性菌の増殖を上回っています。' : '耐性菌には薬が十分に作用していません（耐性による必要濃度 ' + params.resistFold[d.mech - 1] + ' 倍）。']; }
+
+export function formatNumber(value: number): string {
+    const count = Math.abs(value) < 1000 ? Math.round(value) : value;
+    return '約' + formatMagnitude(count) + '個';
+}
+
+export function formatScalar(value: number): string {
+    return value.toLocaleString('ja', { maximumSignificantDigits: 3 });
+}
+
+export function formatPercent(value: number): string {
+    const rounded = value.toFixed(1);
+    return Number(rounded) === 100 ? '100%' : rounded + '%';
+}
+
+export function formatChange(before: number, after: number): string {
+    if (before === after) return 'ほぼ変化なし';
+    const ratio = after / before;
+    if (Math.abs(ratio - 1) <= .020000000001) return 'ほぼ変化なし';
+    if (after === 0) return '0個まで減少';
+    if (before === 0) return formatNumber(after) + 'に増加';
+    if (ratio < 1) return '約' + formatMagnitude(1 / ratio) + '分の1';
+    return '約' + formatMagnitude(ratio) + '倍に増加';
+}
+
+export function populationChange(start: number, end: number) {
+    if (end < start) {
+        const reduction = formatPercent((1 - end / start) * 100);
+        return { fold: reduction + ' 減少', detail: '減少割合 ' + reduction };
+    }
+    if (end > start) return { fold: formatChange(start, end), detail: '増加' };
+    return { fold: '変化なし', detail: '変化なし' };
+}
+
+export function residualMessage(start: number, end: number): string {
+    if (end > start) return '耐性菌が増加しています。耐性菌への作用を確認してください。';
+    if (end / start <= .01) return '少数の耐性菌が残存しています。一時的耐性状態と観察期間が関係します。';
+    return '耐性菌が残存しています。作用機序と持続時間を確認してください。';
+}
+
+export function simulationNarration(design: Design, hour: number): string[] {
+    const rates = killRates(hour, design);
+    const susceptible = rates.kS > params.gS
+        ? '薬の作用が感受性菌の増殖を上回っています。'
+        : '感受性菌の増殖を薬の作用だけでは上回れていません。';
+    const resistant = rates.kR > params.gR
+        ? '薬の作用が耐性菌の増殖を上回っています。'
+        : '耐性菌には薬が十分に作用していません（耐性による必要濃度 '
+            + params.resistFold[design.mech - 1] + ' 倍）。';
+    return [susceptible, resistant];
+}
+
 export function barrierEffect(design: Design, hour: number) {
     const efficacy = killRates(hour, design).kR / params.Emax;
     return {

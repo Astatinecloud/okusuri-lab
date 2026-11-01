@@ -1,27 +1,94 @@
 import { cost, keys, killRates, params, runDesign, sideEffect, type Design, type Result } from '../model';
+
 export type Key = typeof keys[number];
 const cache = new Map<string, Result>();
-export function cachedRun(d: Design): Result { const id = keys.map(k => d[k]).join(''); let r = cache.get(id); if (!r) {
-    r = runDesign(d);
-    cache.set(id, r);
-} return r; }
-export function comparisonDesign(d: Design, key: Key, direction: number): Design | null { const level = d[key] + direction; return level < 1 || level > 5 ? null : { ...d, [key]: level }; }
-export function indicators(d: Design) { let s = 0, r = 0; const steps = Math.round(params.T / params.dt); for (let i = 0; i < steps; i++) {
-    const k = killRates(i * params.dt, d);
-    s += Number(k.kS > params.gS);
-    r += Number(k.kR > params.gR);
-} return { timeAboveS: s / steps * 100, timeAboveR: r / steps * 100, se: sideEffect(d) }; }
-export function compareDesigns(current: Design, other: Design) { const result = cachedRun(other), now = cachedRun(current); return { design: { ...other }, result, indicators: indicators(other), delta: { recovered: now.recovered - result.recovered, seDrop: now.seDrop - result.seDrop, normFold: now.representative.normEnd / result.representative.normEnd, resFold: now.representative.resEnd / result.representative.resEnd, cost: (cost(current) - cost(other)) * 10 } }; }
+
+export function cachedRun(design: Design): Result {
+    const id = keys.map(key => design[key]).join('');
+    let result = cache.get(id);
+    if (!result) {
+        result = runDesign(design);
+        cache.set(id, result);
+    }
+    return result;
+}
+
+export function comparisonDesign(design: Design, key: Key, direction: number): Design | null {
+    const level = design[key] + direction;
+    if (level < 1 || level > 5) return null;
+    return { ...design, [key]: level };
+}
+
+export function indicators(design: Design) {
+    let susceptible = 0;
+    let resistant = 0;
+    const steps = Math.round(params.T / params.dt);
+    for (let i = 0; i < steps; i++) {
+        const rates = killRates(i * params.dt, design);
+        susceptible += Number(rates.kS > params.gS);
+        resistant += Number(rates.kR > params.gR);
+    }
+    return {
+        timeAboveS: susceptible / steps * 100,
+        timeAboveR: resistant / steps * 100,
+        se: sideEffect(design),
+    };
+}
+
+export function compareDesigns(current: Design, other: Design) {
+    const result = cachedRun(other);
+    const now = cachedRun(current);
+    return {
+        design: { ...other },
+        result,
+        indicators: indicators(other),
+        delta: {
+            recovered: now.recovered - result.recovered,
+            seDrop: now.seDrop - result.seDrop,
+            normFold: now.representative.normEnd / result.representative.normEnd,
+            resFold: now.representative.resEnd / result.representative.resEnd,
+            cost: (cost(current) - cost(other)) * 10,
+        },
+    };
+}
+
+export type Comparison = ReturnType<typeof compareDesigns>;
+type ParameterAnalysis = { minus1: Comparison | null; baseline: Comparison | null; plus1: Comparison | null };
+
+function bacterialReduction(comparison: Comparison | null): number {
+    if (!comparison) return 0;
+    return (1 - comparison.delta.normFold) + (1 - comparison.delta.resFold);
+}
+
 export function analyzeDesign(design: Design) {
     const current = cachedRun(design);
-    const parameters = Object.fromEntries(keys.map(key => [key, { minus1: design[key] === 1 ? null : compareDesigns(design, { ...design, [key]: design[key] - 1 }), baseline: design[key] === 1 ? null : compareDesigns(design, { ...design, [key]: 1 }) }])) as Record<Key, {
-        minus1: ReturnType<typeof compareDesigns> | null;
-        baseline: ReturnType<typeof compareDesigns> | null;
-    }>;
-    const strongest = [...keys].sort((a, b) => { const x = parameters[a].baseline?.delta, y = parameters[b].baseline?.delta; return (y?.recovered ?? 0) - (x?.recovered ?? 0) || ((1 - (y?.normFold ?? 1)) + (1 - (y?.resFold ?? 1))) - ((1 - (x?.normFold ?? 1)) + (1 - (x?.resFold ?? 1))); })[0];
+    const parameters = Object.fromEntries(keys.map(key => {
+        const level = design[key];
+        const minus1 = level === 1 ? null : compareDesigns(design, { ...design, [key]: level - 1 });
+        const baseline = level === 1 ? null : compareDesigns(design, { ...design, [key]: 1 });
+        const plus1 = level === 1 ? compareDesigns(design, { ...design, [key]: 2 }) : null;
+        return [key, { minus1, baseline, plus1 }];
+    })) as Record<Key, ParameterAnalysis>;
+    const upgraded = keys.filter(key => design[key] > 1);
+    const strongest = upgraded.length === 0 ? null : [...upgraded].sort((a, b) => {
+        const before = parameters[a].baseline;
+        const after = parameters[b].baseline;
+        return (after?.delta.recovered ?? 0) - (before?.delta.recovered ?? 0)
+            || bacterialReduction(after) - bacterialReduction(before);
+    })[0] ?? null;
     return { current, indicators: indicators(design), parameters, strongest };
 }
-export async function prepareAnalysis(d: Design) { for (const item of [d, ...keys.flatMap(k => d[k] === 1 ? [] : [{ ...d, [k]: d[k] - 1 }, { ...d, [k]: 1 }])]) {
-    await new Promise(resolve => setTimeout(resolve, 0));
-    cachedRun(item);
-} return analyzeDesign(d); }
+
+export type Analysis = ReturnType<typeof analyzeDesign>;
+
+/** Yield between complete model runs, including upward examples at level one. */
+export async function prepareAnalysis(design: Design): Promise<Analysis> {
+    const variants = keys.flatMap(key => design[key] === 1
+        ? [{ ...design, [key]: 2 }]
+        : [{ ...design, [key]: design[key] - 1 }, { ...design, [key]: 1 }]);
+    for (const item of [design, ...variants]) {
+        await new Promise(resolve => setTimeout(resolve, 0));
+        cachedRun(item);
+    }
+    return analyzeDesign(design);
+}
