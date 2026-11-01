@@ -1,6 +1,5 @@
 import { useEffect, useRef } from 'react';
-import { adult, science } from '../../config/game';
-import { Glossary } from './Info';
+import { titleScience, titleScienceNote } from '../../config/game';
 import { trimName } from '../../share';
 type Props = {
     modal: string;
@@ -18,7 +17,7 @@ export function GameDialog({ modal, setModal, name, setName, newName, finish }: 
         else
             dialog.current?.close();
     }, [modal]);
-    return (<dialog ref={dialog} onCancel={() => setModal('')} onClick={event => {
+    return (<dialog className={modal === 'science' ? 'title-science-dialog' : undefined} ref={dialog} onCancel={() => setModal('')} onClick={event => {
             if (event.target === event.currentTarget)
                 setModal('');
         }}>
@@ -36,15 +35,11 @@ export function GameDialog({ modal, setModal, name, setName, newName, finish }: 
                         <p>② 新薬の名前を付けて、1年間（12か月）のシミュレーションを実行します。</p>
                         <p>③ 100人の回復と地域の耐性菌の広がりを確認し、次の設計を考えます。</p>
                         <p>性能を下げると研究コインに余裕ができます。何度でも再設計できます。</p>
-                    </>) : modal === 'mechanism' ? (<>
-                        <h2>新しい作用機序</h2>
-                        <p>耐性菌は薬の分解や排出、標的の変化などにより作用を受けにくくなります。新しい作用機序で耐性機構を回避します。</p>
-                    </>) : (<>
+                    </>) : modal === 'science' ? (<>
                         <h2>このゲームの科学的背景</h2>
-                        {science.map(([title, text]) => (<article className="science-card" key={title}><h3>{title}</h3><p>{text}</p></article>))}
-                        <h3>モデルについて</h3>
-                        <p className="tiny">{adult}</p><Glossary />
-                    </>)}
+                        {titleScience.map(([title, text]) => (<article className="science-card" key={title}><h3>{title}</h3><p>{text}</p></article>))}
+                        <p className="tiny">{titleScienceNote}</p>
+                    </>) : null}
                 <button className="wide" onClick={() => setModal('')}>とじる</button>
             </div>
         </dialog>);

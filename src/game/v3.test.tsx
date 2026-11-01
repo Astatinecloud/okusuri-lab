@@ -2,7 +2,7 @@ import { readFileSync, readdirSync } from 'node:fs';
 import { describe, it, expect, vi } from 'vitest';
 import { renderToStaticMarkup as render } from 'react-dom/server';
 import ts from 'typescript';
-import { labels, ranks, chanceNote } from '../config/game';
+import { labels, ranks, chanceNote, science, titleScience, titleScienceNote, adult } from '../config/game';
 import { initial } from './types';
 import { rank } from './result';
 import { encode, decode } from '../share';
@@ -15,6 +15,7 @@ import { Lab } from '../ui/screens/Lab';
 import { YearChart, monthNarration, niceAxis } from '../ui/components/YearChart';
 import { Body } from '../ui/components/Body';
 import { ResearchCoinBudget } from '../ui/components/Coin';
+import { GameDialog } from '../ui/components/GameDialog';
 import { yearOutcome } from '../model';
 const noop = () => { };
 const source = (path: string) => readFileSync(new URL('../' + path, import.meta.url), 'utf8');
@@ -55,6 +56,11 @@ describe('v3 experience', () => {
     it('year result, five outcomes, solid charts and data-based narration', () => {
         const r = yearOutcome(initial, 42);
         const result = render(<Result r={r} name="test" design={initial} save={noop} setScreen={noop} setDesign={noop} setModal={noop}/>);
+        expect(result).toContain('<summary>科学的な解説</summary>');
+        for (const [heading, text] of science) {
+            expect(result).toContain('<h3>'+heading+'</h3>');
+            expect(result).toContain(text);
+        }
         expect(result.indexOf('研究者ランク')).toBeLessThan(result.indexOf('RESEARCH REPORT'));
         expect((result.match(/class="patient-icon /g) || [])).toHaveLength(105);
         for (const label of Object.values(labels))
@@ -136,5 +142,26 @@ describe('v3 experience', () => {
         const css=source('style.css');
         expect(css).toMatch(/\.table-scroll table\s*\{[^}]*min-width:\s*0[^}]*table-layout:\s*fixed/);
         expect(css).toMatch(/\.table-scroll caption\s*\{[^}]*white-space:\s*normal[^}]*overflow-wrap:\s*anywhere/);
+    });
+    it('title science dialog has exactly three verbatim cards and the small note',()=>{
+        const expected = [
+            ['なぜ新しい薬が必要なの？','細菌の中には、これまでの薬が効きにくいものもいます。そこで、新しい薬の開発が必要になります。'],
+            ['薬剤耐性菌ってなに？','特定の薬が効きにくい細菌のことです。薬を使うことで、耐性菌が生き残り、増えてしまうことがあります。'],
+            ['このゲームでは？','研究予算を使って、薬の強さ・耐性の生じにくさ・効果が続く時間・安全性を工夫し、100人の患者を救う新薬を開発します。'],
+        ];
+        expect(titleScience).toEqual(expected);
+        expect(titleScienceNote).toBe('このゲームは科学を学ぶための簡略化したシミュレーションです。実際の治療結果を予測するものではありません。');
+        const html=render(<GameDialog modal="science" setModal={noop} name="test" setName={noop} newName={noop} finish={noop}/>);
+        expect((html.match(/class="science-card"/g)||[])).toHaveLength(3);
+        expect([...html.matchAll(/<h3>(.*?)<\/h3>/g)].map(match=>match[1])).toEqual(expected.map(([title])=>title));
+        for(const [title,text] of expected)expect(html).toContain('<h3>'+title+'</h3><p>'+text+'</p>');
+        expect(html).toContain('<p class="tiny">'+titleScienceNote+'</p>');
+        expect(html).toContain('>とじる</button>');
+        for(const term of ['μ','EC50','G(t)','Hill','ロジスティック','モデルについて','用語集',adult])expect(html).not.toContain(term);
+        expect(source('ui/components/GameDialog.tsx')).not.toContain("modal === 'mechanism'");
+        const css=source('style.css');
+        expect(css).toMatch(/\.title-science-dialog\s*\{[^}]*overflow-y:\s*auto[^}]*overflow-wrap:\s*anywhere/);
+        expect(css).toContain('width:calc(100% - 32px)');
+        expect(css).toContain('max-height:85dvh');
     });
 });

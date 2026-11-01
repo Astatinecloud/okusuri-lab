@@ -878,6 +878,12 @@ button[aria-pressed=true]:hover,.primary:hover {
 .bar-track { background: #eee8f2; height: 24px; border-radius: 6px; overflow: hidden; }
 .bar-track > div { height: 100%; background: #b291cc; }
 .fraction-chart { max-height: 200px; }
+.title-science-dialog { overflow-y: auto; overflow-wrap: anywhere; }
+.title-science-dialog .dialog-content { min-width: 0; }
+@media(max-width: 400px) {
+    .title-science-dialog .dialog-content { padding: 20px; }
+    .title-science-dialog .science-card { padding: 16px; }
+}
 .table-scroll th, .table-scroll td { white-space: normal; overflow-wrap: anywhere; }
 .chance-note { margin-top: 1rem; }
 .statistics-progress p { margin-bottom: .25rem; }
