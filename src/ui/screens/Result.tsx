@@ -5,9 +5,23 @@ import { rank } from '../../game/result';
 import { initial, type Screen } from '../../game/types';
 import { YearChart } from '../components/YearChart';
 import { PatientIcon, patientLabels } from '../components/PatientIcon';
-import { requestAdvice } from '../../game/adviceClient';
+import { requestAdvicePart, type AdvicePart } from '../../game/adviceClient';
 import type { Advice } from '../../game/advice';
-import { ResultAdvice } from '../components/ResultAdvice';
+import { ResultAdvice, type PartState } from '../components/ResultAdvice';
+
+function useAdvicePart<P extends AdvicePart>(design: Design, seed: number, part: P) {
+    const [attempt, setAttempt] = useState(0);
+    const [state, setState] = useState<PartState<Advice[P]>>({value: null, error: false});
+    useEffect(() => {
+        let active = true;
+        setState({value: null, error: false});
+        requestAdvicePart(design, seed, part).then(value => {
+            if (active) setState({value, error: false});
+        }).catch(() => { if (active) setState({value: null, error: true}); });
+        return () => { active = false; };
+    }, [design, seed, part, attempt]);
+    return [state, () => {setState({value: null, error: false});setAttempt(value => value + 1);}] as const;
+}
 type Props = {
     r: ModelResult;
     name: string;
@@ -25,21 +39,16 @@ export function ResearcherRank({ recovered }: {
     return <section className={'rank-ribbon rank-' + value.stars} aria-label="研究者ランク"><p>あなたの研究者ランク</p><div className="researcher-rank"><span>{'★'.repeat(value.stars)}</span><strong>{value.name}</strong></div><p className="tiny chance-note">{chanceNote}</p></section>;
 }
 export function Result({ r, name, design, save, setScreen, setDesign }: Props) {
-    const [advice,setAdvice] = useState<Advice|null>(null),[adviceError,setAdviceError]=useState(false);
+    const [diagnosis, retryDiagnosis] = useAdvicePart(design, r.seed, 'diagnosis');
+    const [recommendation, retryRecommendation] = useAdvicePart(design, r.seed, 'recommendation');
     const comparison = useMemo(() => yearOutcome({ ...design, bar: 1 }, r.seed), [design, r.seed]);
-    useEffect(()=>{
-        let active=true;
-        setAdvice(null);setAdviceError(false);
-        requestAdvice(design,r.seed).then(value=>{if(active)setAdvice(value)}).catch(()=>{if(active)setAdviceError(true)});
-        return ()=>{active=false};
-    },[design,r.seed]);
     const months = r.community.months, first = months[0], last = months[11];
     function replay(reset: boolean) { if (reset)
         setDesign(initial); history.replaceState(null, '', location.pathname + location.search); setScreen(reset ? 'title' : 'develop'); }
     return <>
  <ResearcherRank recovered={r.recovered}/>
  <div className="heading"><small>診断結果</small><h1>「{name}」の評価</h1><p className="recovered-total"><strong>{r.recovered}</strong> / 100人が回復</p><p>{last.frac>=params3.spreadThreshold?'この1年で、薬が効きにくい細菌が広がりました。':'この1年で、薬が効きにくい細菌はあまり広がりませんでした。'}</p></div>
- <ResultAdvice advice={advice} error={adviceError}/>
+ <ResultAdvice diagnosis={diagnosis} recommendation={recommendation} retryDiagnosis={retryDiagnosis} retryRecommendation={retryRecommendation}/>
  <h2 className="details-heading">くわしい結果</h2>
  <section className="card"><h2>① 1年間の細菌の変化</h2><YearChart months={months}/>
  <p>1か月目の地域の月平均感染者数は、新薬が効く菌が{first.YS.toFixed(1)}人、耐性菌が{first.YR.toFixed(1)}人でした。12か月目はそれぞれ{last.YS.toFixed(1)}人、{last.YR.toFixed(1)}人で、耐性菌の割合は{percent(last.frac)}でした。</p><p>地域で治療中に耐性が成立した件数は、1年間で{r.community.emergences}件です。下の100人は、この地域の各月の割合に応じた感染を治療した結果です。</p></section>

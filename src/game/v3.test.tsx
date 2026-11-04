@@ -63,14 +63,16 @@ describe('v3 experience', () => {
         const sections=['研究者ランク','診断結果','今回のお薬はどうだった？','次に改良するなら？','くわしい結果','① 1年間の細菌の変化','② 100人の患者の回復人数','③ 耐性対策への研究投資の効果'];
         sections.slice(1).forEach((heading,i)=>expect(result.indexOf(sections[i])).toBeLessThan(result.indexOf(heading)));
         expect(result).toContain(' / 100人が回復');
-        expect(result).toContain('考え中…');
+        expect(result).toContain('お薬の結果をまとめています…');
+        expect(result).toContain('次の改良ポイントを考えています…');
         expect((result.match(/class="patient-icon /g) || [])).toHaveLength(105);
         for (const label of Object.values(labels))
             expect(result).toContain(label);
         expect(result).toContain('もう一度つくる（設定を保持）');
         expect(result).toContain('結果を保存・共有');
         expect(result.split(chanceNote)).toHaveLength(3);
-        expect(render(<Simulation r={r} design={initial} elapsedMonths={0} setScreen={noop}/>)).toContain('1か月目 / 12か月');
+        expect(render(<Simulation r={r} design={initial} elapsedMonths={0} setScreen={noop}/>)).toContain('開始前');
+        expect(render(<Simulation r={r} design={initial} elapsedMonths={1} setScreen={noop}/>)).toContain('1か月目 / 12か月');
         expect(render(<Simulation r={r} design={initial} elapsedMonths={12} setScreen={noop}/>)).toContain('12か月目 / 12か月');
         const chart = render(<YearChart months={r.community.months}/>);
         expect(chart).not.toContain('stroke-dasharray');
@@ -80,7 +82,7 @@ describe('v3 experience', () => {
         expect(monthNarration(custom, 2)).toContain('生まれた');
         expect(monthNarration(custom, 4)).toContain('広がりはじめ');
         expect(monthNarration(custom, 0)).not.toContain('生まれた');
-        expect((render(<Body fraction={.25}/>).match(/#b291cc/g) || [])).toHaveLength(10);
+        expect((render(<Body YS={300} YR={100}/>).match(/#b291cc/g) || [])).toHaveLength(10);
     });
     it('removes obsolete UI terminology and analysis/comparison modules', () => {
         function scan(dir: string): string {
@@ -104,7 +106,8 @@ describe('v3 experience', () => {
         expect(source('game/adviceClient.ts')).toContain('cache.set');
         expect(source('ui/screens/Result.tsx')).not.toContain('investmentStatistics');
         expect(source('game/investment.worker.ts')).not.toContain('calculateInvestment');
-        expect(source('game/investment.worker.ts')).toContain('calculateAdvice');
+        expect(source('game/investment.worker.ts')).toContain('diagnose');
+        expect(source('game/investment.worker.ts')).toContain('recommend');
     });
     it('canvas card keeps QR and uses the largest centered rank', async () => {
         const calls: {
@@ -159,7 +162,7 @@ describe('v3 experience', () => {
     });
     it('title science dialog has exactly three verbatim cards and the small note',()=>{
         const expected = [
-            ['なぜ新しい薬が必要なの？','細菌の中には、これまでの薬が効きにくいものもいます。そこで、新しい薬の開発が必要になります。'],
+            ['なぜ新しい薬が必要なの？','ある日、これまで知られていなかった細菌が見つかりました。この細菌に効く薬はまだありません。そこで、あなたは新しい薬の開発に挑戦することになりました！'],
             ['薬剤耐性菌ってなに？','特定の薬が効きにくい細菌のことです。薬を使うことで、耐性菌が生き残り、増えてしまうことがあります。'],
             ['このゲームでは？','研究予算を使って、薬の強さ・耐性の生じにくさ・効果が続く時間・安全性を工夫し、100人の患者を救う新薬を開発します。'],
         ];

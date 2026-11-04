@@ -167,7 +167,10 @@ describe('model-driven advice',()=>{
             const html=renderToStaticMarkup(<ResultAdvice advice={advice}/>);
             const text=html.replace(/<[^>]*>/g,'');checkJapanese(text);
             expect(text).toContain('今回のお薬はどうだった？');expect(text).toContain('次に改良するなら？');
-            if(!advice)expect(text).toContain('考え中…');else expect(html).toContain('recommendation-name');
+            if(!advice) {
+                expect(text).toContain('お薬の結果をまとめています…');
+                expect(text).toContain('次の改良ポイントを考えています…');
+            } else expect(html).toContain('recommendation-name');
         }
     });
 });

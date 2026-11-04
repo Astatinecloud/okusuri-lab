@@ -1,21 +1,34 @@
-import { keys, type Design } from '../model';
+﻿import { keys, type Design } from '../model';
 import type { Advice } from './advice';
-const cache = new Map<string, Promise<Advice>>();
-/** Use the existing worker entry point; no model evaluation runs during rendering. */
-export function requestAdvice(design: Design, seed: number): Promise<Advice> {
-    const key = [seed >>> 0,...keys.map(k=>design[k])].join(':');
+export type AdvicePart = 'diagnosis' | 'recommendation';
+export const ADVICE_TIMEOUT_MS = 30_000;
+const cache = new Map<string, Promise<Advice[AdvicePart]>>();
+/** Each part owns its worker, cache, timeout and retry lifecycle. */
+export function requestAdvicePart<P extends AdvicePart>(design: Design, seed: number, part: P): Promise<Advice[P]> {
+    const key = [part, seed >>> 0, ...keys.map(k => design[k])].join(':');
     const cached = cache.get(key);
-    if (cached) return cached;
-    const promise = new Promise<Advice>((resolve,reject)=>{
-        const worker = new Worker(new URL('./investment.worker.ts',import.meta.url),{type:'module'});
-        worker.onmessage = (event: MessageEvent<{type:'advice-complete';advice:Advice}|{type:'advice-error'}>)=>{
+    if (cached) return cached as Promise<Advice[P]>;
+    const promise = new Promise<Advice[P]>((resolve, reject) => {
+        const worker = new Worker(new URL('./investment.worker.ts', import.meta.url), {type: 'module'});
+        let settled = false;
+        const finish = (value?: Advice[P], error?: Error) => {
+            if (settled) return;
+            settled = true;
+            clearTimeout(timer);
             worker.terminate();
-            if(event.data.type==='advice-complete') resolve(event.data.advice);
-            else reject(new Error('Advice calculation failed'));
+            if (error) reject(error); else resolve(value!);
         };
-        worker.onerror = error=>{worker.terminate();reject(new Error(error.message))};
-        worker.postMessage({type:'advice',design,seed});
-    }).catch(error=>{cache.delete(key);throw error});
-    cache.set(key,promise);
+        const timer = setTimeout(() => finish(undefined, new Error('Advice calculation timed out')), ADVICE_TIMEOUT_MS);
+        worker.onmessage = (event: MessageEvent<{type: string; part: AdvicePart; value: Advice[P]}>) => {
+            if (event.data.part !== part) return;
+            if (event.data.type === 'advice-complete') finish(event.data.value);
+            else if (event.data.type === 'advice-error') finish(undefined, new Error('Advice calculation failed'));
+        };
+        worker.onerror = error => finish(undefined, new Error(error.message));
+        worker.onmessageerror = () => finish(undefined, new Error('Advice message failed'));
+        try { worker.postMessage({type: 'advice', part, design, seed}); }
+        catch { finish(undefined, new Error('Advice calculation failed')); }
+    }).catch(error => { cache.delete(key); throw error; });
+    cache.set(key, promise);
     return promise;
 }

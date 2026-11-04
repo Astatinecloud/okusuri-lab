@@ -1,16 +1,29 @@
 import type { Advice } from '../../game/advice';
-export function ResultAdvice({advice,error=false}: {advice:Pick<Advice,'diagnosis'|'recommendation'>|null;error?:boolean}) {
+export type PartState<T> = {value: T | null; error: boolean};
+function Pending({error, retry, children}: {error: boolean; retry?: () => void; children: string}) {
+    return error ? <div role="status" aria-live="polite"><p>うまく計算できませんでした。</p><button onClick={retry}>もう一度ためす</button></div>
+        : <p className="advice-loading" role="status" aria-live="polite"><span className="loading-spinner" aria-hidden="true"/>{children}</p>;
+}
+export function ResultAdvice({advice=null, diagnosis, recommendation, retryDiagnosis, retryRecommendation}: {
+    advice?: Pick<Advice,'diagnosis'|'recommendation'> | null;
+    diagnosis?: PartState<Advice['diagnosis']>;
+    recommendation?: PartState<Advice['recommendation']>;
+    retryDiagnosis?: () => void;
+    retryRecommendation?: () => void;
+}) {
+    const diagnosisValue = diagnosis?.value ?? advice?.diagnosis;
+    const recommendationValue = recommendation?.value ?? advice?.recommendation;
     return <>
         <section className="card advice-section" aria-labelledby="diagnosis-title">
             <h2 id="diagnosis-title">今回のお薬はどうだった？</h2>
-            {advice?advice.diagnosis.map((text,i)=><p key={i}>{text}</p>):<p role="status">{error?'お薬の振り返りを読み込めませんでした。結果画面を開き直してください。':'考え中…'}</p>}
+            {diagnosisValue?diagnosisValue.map((text,i)=><p key={i}>{text}</p>):<Pending error={diagnosis?.error ?? false} retry={retryDiagnosis}>お薬の結果をまとめています…</Pending>}
         </section>
         <section className="card advice-section" aria-labelledby="recommendation-title">
             <h2 id="recommendation-title">次に改良するなら？</h2>
-            {advice?<>
-                {advice.recommendation.parameter&&<h3 className="recommendation-name">{advice.recommendation.parameter}</h3>}
-                {advice.recommendation.sentences.map((text,i)=><p key={i}>{text}</p>)}
-            </>:<p role="status">{error?'改良の提案を読み込めませんでした。結果画面を開き直してください。':'考え中…'}</p>}
+            {recommendationValue?<>
+                {recommendationValue.parameter&&<h3 className="recommendation-name">{recommendationValue.parameter}</h3>}
+                {recommendationValue.sentences.map((text,i)=><p key={i}>{text}</p>)}
+            </>:<Pending error={recommendation?.error ?? false} retry={retryRecommendation}>次の改良ポイントを考えています…</Pending>}
         </section>
     </>;
 }
