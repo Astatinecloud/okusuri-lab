@@ -23,7 +23,7 @@ export function Glossary() {
             <summary>用語集</summary>
             <dl>
                 {terms.map(term => (<div key={term}>
-                        <dt>{term === '新薬が効く菌' && <Germ />}{term === '薬剤耐性' && <Germ res/>}{term === '一時的耐性状態' && <Germ sleep/>}{term}</dt>
+                        <dt>{term === '新薬が効く菌' && <Germ />}{term === '薬剤耐性' && <Germ res/>}{term}</dt>
                         <dd>{glossary[term]}</dd>
                     </div>))}
             </dl>

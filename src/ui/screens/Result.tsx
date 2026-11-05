@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { cost, keys, yearOutcome, params3, type Design, type Result as ModelResult, type PatientStatus } from '../../model';
-import { labels, chanceNote } from '../../config/game';
+import { labels, chanceNote, ranks } from '../../config/game';
 import { rank } from '../../game/result';
 import { initial, type Screen } from '../../game/types';
 import { YearChart } from '../components/YearChart';
@@ -8,6 +8,7 @@ import { PatientIcon, patientLabels } from '../components/PatientIcon';
 import { requestAdvicePart, type AdvicePart } from '../../game/adviceClient';
 import type { Advice } from '../../game/advice';
 import { ResultAdvice, type PartState } from '../components/ResultAdvice';
+import { Germ } from '../components/Visuals';
 
 function useAdvicePart<P extends AdvicePart>(design: Design, seed: number, part: P) {
     const [attempt, setAttempt] = useState(0);
@@ -36,7 +37,14 @@ export function ResearcherRank({ recovered }: {
     recovered: number;
 }) {
     const value = rank(recovered);
-    return <section className={'rank-ribbon rank-' + value.stars} aria-label="研究者ランク"><p>あなたの研究者ランク</p><div className="researcher-rank"><span>{'★'.repeat(value.stars)}</span><strong>{value.name}</strong></div><p className="tiny chance-note">{chanceNote}</p></section>;
+    const stages = [...ranks].reverse(), stage = stages.indexOf(value) + 1;
+    return <section className={'rank-ribbon rank-' + value.stars} aria-label="研究者ランク">
+        <p>あなたの研究者ランク</p>
+        <div className="researcher-rank"><div className="rank-stars" role="img" aria-label={`${ranks.length}段階中${stage}段階目`}><span>{'★'.repeat(stage)}</span><span className="rank-outline-stars">{'☆'.repeat(ranks.length - stage)}</span></div><strong>{value.name}</strong></div>
+        <p className="rank-stage">全{ranks.length}段階中 {stage}段階目</p>
+        <ol className="rank-ladder" aria-label="研究者ランクの段階">{stages.map(item => <li key={item.name} aria-current={item === value ? 'step' : undefined} className={item === value ? 'rank-current' : undefined}>{item.name}</li>)}</ol>
+        <p className="tiny chance-note">{chanceNote}</p>
+    </section>;
 }
 export function Result({ r, name, design, save, setScreen, setDesign }: Props) {
     const [diagnosis, retryDiagnosis] = useAdvicePart(design, r.seed, 'diagnosis');
@@ -55,6 +63,7 @@ export function Result({ r, name, design, save, setScreen, setDesign }: Props) {
  <section className="card"><h2>② 100人の患者の回復人数</h2><p className="recovered-total"><strong>{r.recovered}</strong> / 100人が回復</p>
  <div className="patient-grid" aria-label="100人の治療結果">{r.outcomes.map((status, i) => <span key={i} title={(i + 1) + '人目・' + (Math.floor(i * 12 / 100) + 1) + 'か月目：' + patientLabels[status]}><PatientIcon status={status}/></span>)}</div>
  <div className="legend patient-legend">{(Object.keys(patientLabels) as PatientStatus[]).map(s => <span key={s}><PatientIcon status={s}/>{patientLabels[s]}：{r.outcomes.filter(v => v === s).length}人</span>)}</div><p className="tiny">副作用で中断した患者は、感染の種類によらず「副作用で中断」に分類しています。</p></section>
+ <section className="card dormant-card"><h3>体の中の“眠っている菌”</h3><div><Germ sleep/><p>治療中、体の中には眠っていたり薬が届きにくい場所にいたりして、一時的に薬が効きにくい菌が少しいます。これは耐性菌とはちがい、目をさますと薬が効くようになります。治療のあとに少し菌が残ることがあるのはこのためで、多くは体の守る力で片づけられます。</p></div></section>
  <section className="card"><h2>③ 耐性対策への研究投資の効果</h2><p className="chance-note">{chanceNote}</p><p>耐性の生じにくさだけをレベル1に戻した参考比較です。他の性能は同じで、比較には研究コインの上限を適用しません。</p>
  <div className="table-scroll"><table><caption>同じシード（{r.seed}）での結果</caption><thead><tr><th>設計</th><th>回復人数</th><th>12か月目の耐性菌割合</th></tr></thead><tbody><tr><th>現在（レベル{design.bar}）</th><td>{r.recovered}人</td><td>{percent(last.frac)}</td></tr><tr><th>レベル1</th><td>{comparison.recovered}人</td><td>{percent(comparison.community.months[11].frac)}</td></tr></tbody></table></div></section>
  <section className="card"><p className="coin-summary">研究コインの使用枚数：{cost(design)} / 9枚</p>{keys.map(k => <p key={k}>{labels[k]}：レベル{design[k]}</p>)}</section>

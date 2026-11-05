@@ -1,6 +1,6 @@
 import qrcode from 'qrcode-generator';
 import { cost, keys, type Design, type Result } from '../model';
-import { labels, adult } from '../config/game';
+import { labels, adult, ranks } from '../config/game';
 import { rank } from '../game/result';
 export function makeQR(url: string) {
     const qr = qrcode(0, 'M');
@@ -27,9 +27,15 @@ export async function resultImage(design: Design, result: Result, name: string, 
     text('おくすり発明ラボ · 1年間の研究結果', 65, 32);
     const researcher = rank(result.recovered);
     context.fillStyle = ['#f5ecdb', '#e8edf0', '#e5efdf', '#e1eee6', '#f6e8b8'][researcher.stars - 1];
-    context.fillRect(25, 95, 1030, 210);
-    text('★'.repeat(researcher.stars), 175, 64, true);
+    context.fillRect(25, 95, 1030, 240);
+    const stage = [...ranks].reverse().indexOf(researcher) + 1;
+    context.font = '700 56px "Noto Sans JP", sans-serif';
+    Array.from({length: ranks.length}, (_, i) => {
+        context.fillStyle = i < stage ? '#375a51' : '#7caa94';
+        context.fillText(i < stage ? '★' : '☆', 540 + (i - (ranks.length - 1) / 2) * 64, 175);
+    });
     text(researcher.name, 265, 64, true);
+    text(`全${ranks.length}段階中 ${stage}段階目`, 315, 28);
     drawGerm(context, 95, 375);
     drawGerm(context, 985, 375, true);
     text(name, 375, 42, true);

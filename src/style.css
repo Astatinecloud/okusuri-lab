@@ -902,6 +902,17 @@ button[aria-pressed=true]:hover,.primary:hover {
 .rank-5 { background: #f6e8b8; }
 .researcher-rank { font-size: clamp(2.6rem, 6vw, 3rem); font-weight: 800; line-height: 1.4; overflow-wrap: anywhere; }
 .researcher-rank span, .researcher-rank strong { display: block; font-size: inherit; }
+.researcher-rank .rank-stars { display: flex; justify-content: center; font-size: .85em; }
+.rank-outline-stars { color: #7caa94; }
+.rank-stage { margin: .5rem 0; }
+.rank-ladder { display: flex; flex-wrap: wrap; justify-content: center; gap: .4rem; list-style: none; padding: 0; margin: 1rem 0; font-size: .75rem; }
+.rank-ladder li { max-width: 100%; overflow-wrap: anywhere; color: #6c7d75; padding: .35rem .65rem; border-radius: 14px; }
+.rank-ladder .rank-current { font-weight: 700; color: #375a51; background: #a7d8ba; }
+.dormant-card { font-size: .875rem; }
+.dormant-card h3 { margin-top: 0; }
+.dormant-card>div { display: flex; align-items: flex-start; gap: .75rem; }
+.dormant-card .germ { flex: 0 0 44px; width: 44px; }
+.dormant-card p { margin: 0; min-width: 0; }
 .coin-summary { font-size: 1rem; }
 .patient-grid { display: grid; grid-template-columns: repeat(10,minmax(0,1fr)); gap: 3px; max-width: 600px; margin: 1rem auto; }
 .patient-grid .patient-icon { width: 100%; height: auto; }
